@@ -4,7 +4,7 @@ import sqlite3 as lite
 conexao = lite.connect('bd_hitnote.db')
 
 # Criando tabela
-def criarTabela():
+def criarTabelaUsuario():
     with conexao:
         cur = conexao.cursor()
         # cur.execute("DROP TABLE Usuario")

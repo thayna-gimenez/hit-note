@@ -4,10 +4,10 @@ import sqlite3 as lite
 conexao = lite.connect('bd_hitnote.db')
 
 # Criando tabela
-def criarTabela():
+def criarTabelaAlbum():
     with conexao:
         cur = conexao.cursor()
-        # cur.execute("DROP TABLE Album")
+        #cur.execute("DROP TABLE Album")
         cur.execute("CREATE TABLE Album(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, notaMedia FLOAT, qtdeMusicas INT, artista TEXT, duracao TEXT, genero TEXT)")
 
 

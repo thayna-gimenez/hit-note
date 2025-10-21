@@ -4,10 +4,10 @@ import sqlite3 as lite
 conexao = lite.connect('bd_hitnote.db')
 
 # Criando tabela
-def criarTabela():
+def criarTabelaMusica():
     with conexao:
         cur = conexao.cursor()
-        # cur.execute("DROP TABLE Musica")
+        #cur.execute("DROP TABLE Musica")
         cur.execute("CREATE TABLE Musica(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, artista TEXT, album TEXT, duracao TEXT)")
 
 
@@ -58,10 +58,3 @@ def verLinha(id):
             ver_linha.append(linha)
         
     return ver_linha
-
-
-dados = ['Maroon', 'Taylor Swift', 'Midnights', '3m38s']
-criarTabela()
-inserirDados(dados)
-vis = visualizarDados()
-print(vis)
