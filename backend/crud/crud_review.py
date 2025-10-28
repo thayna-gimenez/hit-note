@@ -6,7 +6,7 @@ def criarTabelaReview():
     with get_connection() as conexao:
         cur = conexao.cursor()
         # cur.execute("DROP TABLE Review")
-        cur.execute("CREATE TABLE Review(id INTEGER PRIMARY KEY AUTOINCREMENT, musica TEXT, nota FLOAT, comentario TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Review(id INTEGER PRIMARY KEY AUTOINCREMENT, musica TEXT, nota FLOAT, comentario TEXT)")
 
 
 # Inserindo dados 

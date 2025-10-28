@@ -8,3 +8,5 @@ frontend/dist/
 
 frontend/.env.local
 *.env
+
+bd_hitnote.db

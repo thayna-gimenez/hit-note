@@ -1,0 +1,23 @@
+# docker-compose.yml
+
+services:
+  # Serviço do Backend
+  backend:
+    build: ./backend  # Onde encontrar o Dockerfile
+    ports:
+      - "8000:8000"  # Mapeia porta 8000 do host para 8000 do contêiner
+    volumes:
+      - ./bd_hitnote.db:/app/bd_hitnote.db
+      - ./backend:/app # Mapeia o código local para dentro do contêiner
+                       # Isso faz o --reload funcionar!
+
+  # Serviço do Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"  # Mapeia porta 3000 (ou a que seu app usa)
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Não sobrescreve o node_modules de dentro do contêiner
+    depends_on:
+      - backend      # Espera o backend "subir" antes de iniciar

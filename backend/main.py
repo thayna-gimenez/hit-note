@@ -2,6 +2,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from bd import get_connection
 
+from crud.crud_musica import criarTabelaMusica
+from crud.crud_album import criarTabelaAlbum
+from crud.crud_review import criarTabelaReview
+from crud.crud_usuario import criarTabelaUsuario
+
 from crud.crud_musica import visualizarDados as musica_list
 from crud.crud_musica import inserirDados as musica_insert
 from crud.crud_musica import verLinha as musica_get
@@ -12,6 +17,15 @@ from pydantic import BaseModel
 from typing import List, Tuple
 
 app = FastAPI(title="HitNote API (músicas v1)")
+
+@app.on_event("startup")
+def on_startup():
+    print("Iniciando a aplicação e criando tabelas...")
+    criarTabelaMusica()
+    criarTabelaAlbum()
+    criarTabelaReview()
+    criarTabelaUsuario()
+    print("Tabelas prontas.")
 
 # Libera o front local
 app.add_middleware(

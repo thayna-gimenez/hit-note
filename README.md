@@ -1,4 +1,12 @@
-Cria banco de dados, insere uma entrada na tabela de música e cria janela de cadastro de música
-```bash
-python .\criar_bd.py
-python .\cadastrarMusica.py
+# 🛠 Quickstart
+
+Na primeira execução, faça:
+
+```
+docker compose up --build
+```
+
+Nas demais, basta executar no terminal:
+```
+docker compose up
+```

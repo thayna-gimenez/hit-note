@@ -6,7 +6,7 @@ def criarTabelaUsuario():
     with get_connection() as conexao:
         cur = conexao.cursor()
         # cur.execute("DROP TABLE Usuario")
-        cur.execute("CREATE TABLE Usuario(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, username TEXT, senha TEXT, email TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Usuario(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, username TEXT, senha TEXT, email TEXT)")
 
 
 # Inserindo dados 
