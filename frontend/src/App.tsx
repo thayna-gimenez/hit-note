@@ -1,65 +1,142 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { TrendingUp, Clock, Heart, Music } from "lucide-react";
 
+// Providers e componentes do Figma
 import { ThemeProvider } from "./components/theme-provider";
 import { Header } from "./components/header";
 import { HeroSection } from "./components/hero-section";
 import { FeaturedSection } from "./components/featured-section";
 import { UserProfile } from "./components/user-profile";
-import { MusicDetail } from "./components/music-detail";
 
-// >>> use seus componentes que falam com o backend
+// >>> Estes dois foram alterados para DEFAULT EXPORT <<<
+// Arquivo existe como src/components/music-detail.tsx (minúsculo mesmo)
+import MusicDetail from "./components/music-detail";
+// Arquivo existe como src/components/AllMusics.tsx (com A maiúsculo)
 import AllMusics from "./components/AllMusics";
-import { CreateMusic } from "./components/CreateMusic";
 
-import { getMusicas, type Musica } from "./lib/api";
-
-// shape que as seções do Figma esperam
-type FigmaMusic = {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  year?: number;
-  coverImage?: string;
-  rating?: number;
-  userRating?: number;
-  genre?: string;
-  isLiked?: boolean;
-  description?: string;
+// ----- Mock de dados do Figma (mantidos) -----
+const featuredMusic = {
+  id: "1",
+  title: "Bohemian Rhapsody",
+  artist: "Queen",
+  album: "A Night at the Opera",
+  year: 1975,
+  coverImage:
+    "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  rating: 4.8,
+  genre: "Rock",
+  duration: "5:55",
+  description:
+    "Uma obra-prima do rock progressivo que combina ópera, hard rock e balada em uma experiência musical única e inesquecível.",
 };
 
-// adapta do backend (Musica) para o formato usado nas seções do Figma
-function toFigmaMusic(m: Musica): FigmaMusic {
-  return {
-    id: String(m.id),
-    title: m.nome,
-    artist: m.artista,
-    album: m.album,
-    duration: m.duracao,
-  };
-}
+const trendingMusics = [
+  {
+    id: "2",
+    title: "Blinding Lights",
+    artist: "The Weeknd",
+    album: "After Hours",
+    year: 2020,
+    coverImage:
+      "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.6,
+    userRating: 5,
+    genre: "Pop",
+    duration: "3:20",
+    isLiked: true,
+  },
+  {
+    id: "3",
+    title: "Shape of You",
+    artist: "Ed Sheeran",
+    album: "÷ (Divide)",
+    year: 2017,
+    coverImage:
+      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.4,
+    userRating: 4,
+    genre: "Pop",
+    duration: "3:53",
+  },
+  {
+    id: "4",
+    title: "Hotel California",
+    artist: "Eagles",
+    album: "Hotel California",
+    year: 1976,
+    coverImage:
+      "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.9,
+    genre: "Rock",
+    duration: "6:30",
+  },
+];
+
+const recentlyPlayed = [
+  {
+    id: "8",
+    title: "Bad Guy",
+    artist: "Billie Eilish",
+    album: "WHEN WE ALL FALL ASLEEP, WHERE DO WE GO?",
+    year: 2019,
+    coverImage:
+      "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.3,
+    userRating: 5,
+    genre: "Alternative",
+    duration: "3:14",
+    isLiked: true,
+  },
+  {
+    id: "9",
+    title: "Someone Like You",
+    artist: "Adele",
+    album: "21",
+    year: 2011,
+    coverImage:
+      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.5,
+    userRating: 4,
+    genre: "Soul",
+    duration: "4:45",
+  },
+];
+
+const favoriteMusics = [
+  {
+    id: "12",
+    title: "Paranoid Android",
+    artist: "Radiohead",
+    album: "OK Computer",
+    year: 1997,
+    coverImage:
+      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.7,
+    userRating: 5,
+    genre: "Alternative",
+    duration: "6:23",
+    isLiked: true,
+  },
+  {
+    id: "13",
+    title: "Smells Like Teen Spirit",
+    artist: "Nirvana",
+    album: "Nevermind",
+    year: 1991,
+    coverImage:
+      "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+    rating: 4.5,
+    userRating: 5,
+    genre: "Grunge",
+    duration: "5:01",
+    isLiked: true,
+  },
+];
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState<"home" | "profile" | "music" | "allMusics">("home");
+  const [currentView, setCurrentView] =
+    useState<"home" | "profile" | "music" | "allMusics">("home");
   const [selectedMusicId, setSelectedMusicId] = useState<string>("");
-
-  const [musicas, setMusicas] = useState<Musica[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [refresh, setRefresh] = useState(0); // para recarregar após criar
-
-  // carrega do backend
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getMusicas()
-      .then(setMusicas)
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [refresh]);
 
   const handleNavigate = (view: string) => {
     setCurrentView(view as "home" | "profile" | "music" | "allMusics");
@@ -75,74 +152,30 @@ function AppContent() {
     setSelectedMusicId("");
   };
 
-  // converte a lista do backend para o formato das seções
-  const figmaList = useMemo(() => musicas.map(toFigmaMusic), [musicas]);
-
-  // define a música em destaque (pode ser a primeira)
-  const featuredMusic = useMemo(() => {
-    const first = figmaList[0];
-    if (!first) return undefined;
-    return {
-      ...first,
-      // valores de apresentação até termos colunas reais (capa/gênero/nota)
-      coverImage:
-        "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?q=80&w=1080&auto=format&fit=crop",
-      rating: 4.7,
-      genre: "Rock",
-      description:
-        "Descubra, avalie e compartilhe suas músicas favoritas com a comunidade.",
-    } as FigmaMusic;
-  }, [figmaList]);
-
-  // por enquanto, dividimos a lista em blocos para preencher as seções
-  const trendingMusics = figmaList.slice(0, 6);
-  const recentlyPlayed = figmaList.slice(6, 10);
-  const favoriteMusics = figmaList.slice(10, 14);
-
   const renderContent = () => {
-    if (loading) {
-      return <main className="container mx-auto px-4 py-8">Carregando…</main>;
-    }
-    if (error) {
-      return (
-        <main className="container mx-auto px-4 py-8 text-red-500">
-          Erro: {error}
-        </main>
-      );
-    }
-
     switch (currentView) {
       case "profile":
         return <UserProfile onMusicClick={handleMusicClick} />;
 
       case "music":
-        return <MusicDetail musicId={selectedMusicId} onBack={handleBackToHome} />;
+        return (
+          <MusicDetail musicId={selectedMusicId} onBack={handleBackToHome} />
+        );
 
       case "allMusics":
-        // seu componente já puxa do backend
-        return <AllMusics onMusicClick={handleMusicClick} />;
+        return <AllMusics />;
 
       default:
         return (
           <main className="container mx-auto px-4 py-8 space-y-12">
-            {/* Hero (usa a primeira música como destaque) */}
-            {featuredMusic && <HeroSection featuredMusic={featuredMusic} />}
+            <HeroSection featuredMusic={featuredMusic} />
 
-            {/* Form de criação (salva no backend) */}
-            <CreateMusic onCreated={() => setRefresh((r) => r + 1)} />
-
-            {/* Listagem geral (busca no backend) */}
-            <section>
-              <AllMusics onMusicClick={handleMusicClick} />
-            </section>
-
-            {/* Seções do Figma preenchidas com a lista */}
             <FeaturedSection
               title="Em Alta"
               subtitle="As músicas mais populares do momento"
               icon={<TrendingUp className="h-6 w-6 text-orange-500" />}
               musics={trendingMusics}
-              showMore={true}
+              showMore
               onMusicClick={handleMusicClick}
             />
 
@@ -151,7 +184,7 @@ function AppContent() {
               subtitle="Continue de onde parou"
               icon={<Clock className="h-6 w-6 text-blue-500" />}
               musics={recentlyPlayed}
-              showMore={true}
+              showMore
               onMusicClick={handleMusicClick}
             />
 
@@ -160,7 +193,7 @@ function AppContent() {
               subtitle="Músicas que você mais ama"
               icon={<Heart className="h-6 w-6 text-red-500" />}
               musics={favoriteMusics}
-              showMore={true}
+              showMore
               onMusicClick={handleMusicClick}
             />
           </main>

@@ -1,12 +1,11 @@
 import sqlite3 as lite
 from bd import get_connection
 
-# REMOVIDO: conexao = lite.connect('bd_hitnote.db')
+# ------------------ TABELA ------------------
 
 def criarTabelaMusica():
     with get_connection() as conexao:
         cur = conexao.cursor()
-        # cur.execute("DROP TABLE Musica")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Musica(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,6 +15,8 @@ def criarTabelaMusica():
                 duracao TEXT
             )
         """)
+
+# ------------------ CRUD BÁSICO ------------------
 
 def inserirDados(dados):
     with get_connection() as conexao:
@@ -56,3 +57,42 @@ def verLinha(id):
         for linha in linhas:
             ver_linha.append(linha)
     return ver_linha
+
+# ------------------ BUSCA + PAGINAÇÃO ------------------
+
+_ALLOWED_ORDER = {
+    "id_asc": "id ASC",
+    "id_desc": "id DESC",
+    "nome_asc": "nome COLLATE NOCASE ASC",
+    "nome_desc": "nome COLLATE NOCASE DESC",
+}
+
+def _where_and_params(q: str | None):
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        where = "WHERE (nome LIKE ? OR artista LIKE ? OR album LIKE ?)"
+        params = (like, like, like)
+    else:
+        where = ""
+        params = tuple()
+    return where, params
+
+def contar_busca(q: str | None) -> int:
+    where, params = _where_and_params(q)
+    with get_connection() as conexao:
+        cur = conexao.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM Musica {where}", params)
+        (total,) = cur.fetchone()
+    return int(total or 0)
+
+def listar_busca(q: str | None, order: str, limit: int, offset: int):
+    order_sql = _ALLOWED_ORDER.get(order, _ALLOWED_ORDER["id_desc"])
+    where, params = _where_and_params(q)
+    with get_connection() as conexao:
+        cur = conexao.cursor()
+        cur.execute(
+            f"SELECT id, nome, artista, album, duracao FROM Musica {where} "
+            f"ORDER BY {order_sql} LIMIT ? OFFSET ?",
+            (*params, limit, offset),
+        )
+        return cur.fetchall()
