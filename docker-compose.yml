@@ -10,6 +10,11 @@ services:
       - ./bd_hitnote.db:/app/bd_hitnote.db
       - ./backend:/app # Mapeia o código local para dentro do contêiner
                        # Isso faz o --reload funcionar!
+    environment:
+      - GENIUS_CLIENT_ID=${GENIUS_CLIENT_ID}
+      - GENIUS_CLIENT_SECRET=${GENIUS_CLIENT_SECRET}
+      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
+      - GENIUS_API_URL=${GENIUS_API_URL}
 
   # Serviço do Frontend
   frontend:

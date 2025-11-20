@@ -10,3 +10,5 @@ frontend/.env.local
 *.env
 
 bd_hitnote.db
+
+*.env
