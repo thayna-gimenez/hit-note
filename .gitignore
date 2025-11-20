@@ -1,10 +1,33 @@
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.vscode/
+.idea/
+
 backend/.venv/
 backend/__pycache__/
-*.pyc
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/*.sqlite
+backend/*.sqlite3
 backend/bd_hitnote.db
+backend/.env
+
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 
 frontend/node_modules/
+frontend/.vite/
 frontend/dist/
+frontend/.turbo/
+frontend/.env
+frontend/.env.*    # ex.: .env.development.local
+
+**/.parcel-cache/
+**/.cache/
+coverage/
 
 frontend/.env.local
 *.env
@@ -12,3 +35,5 @@ frontend/.env.local
 bd_hitnote.db
 
 *.env
+*.swp
+*.swo

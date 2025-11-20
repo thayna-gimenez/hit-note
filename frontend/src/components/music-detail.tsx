@@ -18,7 +18,6 @@ interface MusicDetailProps {
   onBack: () => void;
 }
 
-// --- mocks temporários para seções que ainda não existem no backend ---
 const reviews = [
   {
     id: "rev1",
@@ -71,21 +70,40 @@ const relatedSongs = [
   },
 ];
 
-export function MusicDetail({ musicId, onBack }: MusicDetailProps) {
+export default function MusicDetail({ musicId, onBack }: MusicDetailProps) {
   const [m, setM] = useState<Musica | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // carrega a música real do backend
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getMusica(musicId)
-      .then(setM)
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+    let cancel = false;
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getMusica(musicId);
+        if (!cancel) setM(data);
+      } catch (e) {
+        if (!cancel) setError(String(e));
+      } finally {
+        if (!cancel) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancel = true; };
   }, [musicId]);
 
+  // placeholders (a API ainda não tem esses campos)
+  const coverImage =
+    "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?q=80&w=1080&auto=format&fit=crop";
+  const genre = "Gênero";
+  const year = "—";
+  const rating = 4.6;
+  const totalRatings = 127;
+  const userRating = 5;
+  const isLiked = true;
+
+  // Estados de carregamento/erro ANTES de usar `m`
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -120,15 +138,7 @@ export function MusicDetail({ musicId, onBack }: MusicDetailProps) {
     );
   }
 
-  // campos que o backend AINDA não tem (capa/ano/gênero/rating etc.)
-  const coverImage =
-    "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?q=80&w=1080&auto=format&fit=crop";
-  const genre = "Gênero";
-  const year = "—";
-  const rating = 4.6;
-  const totalRatings = 127;
-  const userRating = 5;
-  const isLiked = true;
+  // A partir daqui `m` é garantidamente não-nulo
 
   return (
     <div className="min-h-screen bg-background">
@@ -184,7 +194,7 @@ export function MusicDetail({ musicId, onBack }: MusicDetailProps) {
               </p>
             </div>
 
-            {/* Rating (placeholder até termos reviews reais) */}
+            {/* Rating (placeholder) */}
             <div className="space-y-3">
               <div className="flex items-center space-x-4">
                 <StarRating rating={rating} size="lg" />
