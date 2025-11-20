@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Tuple, Optional
@@ -18,7 +18,12 @@ from crud.crud_musica import atualizarDados as musica_update
 from crud.crud_musica import deletarDados as musica_delete
 from bd import get_connection
 
+from datetime import timedelta
+
+from auth import create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+
 from crud.crud_musica import (
+    criarTabelaMusica,
     visualizarDados as musica_list,
     inserirDados as musica_insert,
     verLinha as musica_get,
@@ -26,6 +31,23 @@ from crud.crud_musica import (
     deletarDados as musica_delete,
     contar_busca,
     listar_busca,
+)
+
+from crud.crud_usuario import (
+    criarTabelaUsuario,
+    inserirDados as usuario_insert,
+    obter_usuario_por_email,
+    hash_password,
+    verify_password,
+)
+
+from crud.crud_album import criarTabelaAlbum
+from crud.crud_review import (
+    criarTabelaReview,
+    inserirReview,
+    listarReviewsPorMusica,
+    obterReviewPorId,
+    deletarDados as review_delete #DEPOIS?
 )
 
 app = FastAPI(title="HitNote API")
@@ -170,37 +192,45 @@ class ReviewIn(BaseModel):
 class ReviewOut(ReviewIn):
     id: int
     musica: str  # nome da música
+    autor: str
 
 def row_to_review(row: Tuple) -> ReviewOut:
-    # row: (id, musica, nota, comentario)
-    return ReviewOut(id=row[0], musica=row[1], nota=row[2], comentario=row[3])
+    # row vem do JOIN: (id, musica, nota, comentario, nome_usuario)
+    # Se nome_usuario for None (usuário deletado), colocamos um aviso
+    nome_autor = row[4] if row[4] else "Usuário Deletado"
+    
+    return ReviewOut(
+        id=row[0], 
+        musica=row[1], 
+        nota=row[2], 
+        comentario=row[3],
+        autor=nome_autor
+    )
 
 @app.get("/musicas/{id}/reviews", response_model=List[ReviewOut])
 def list_reviews_by_musica(id: int):
     # Descobre o NOME da música a partir do id
     m = get_musica(id)  # lança 404 se não existir
-    with get_connection() as con:
-        cur = con.cursor()
-        cur.execute(
-            "SELECT id, musica, nota, comentario FROM Review WHERE musica=? ORDER BY id DESC",
-            (m.nome,)
-        )
-        rows = cur.fetchall()
+    
+    rows = listarReviewsPorMusica(m.nome)
+    
     return [row_to_review(r) for r in rows]
 
 @app.post("/musicas/{id}/reviews", response_model=ReviewOut, status_code=201)
-def create_review_for_musica(id: int, data: ReviewIn):
+def create_review_for_musica(id: int, data: ReviewIn, current_user: tuple = Depends(get_current_user)):
+    """
+    Cria um review vinculado ao usuário logado.
+    Se não enviar token válido, retorna 401 Unauthorized.
+    """
+    
     m = get_musica(id)  # lança 404 se não existir
-    with get_connection() as con:
-        cur = con.cursor()
-        cur.execute(
-            "INSERT INTO Review(musica, nota, comentario) VALUES(?,?,?)",
-            (m.nome, data.nota, data.comentario)
-        )
-        cur.execute(
-            "SELECT id, musica, nota, comentario FROM Review WHERE rowid = last_insert_rowid()"
-        )
-        row = cur.fetchone()
+    
+    usuario_id = current_user[0] 
+    
+    new_review_id = inserirReview(m.nome, data.nota, data.comentario, usuario_id)
+    
+    row = obterReviewPorId(new_review_id)
+    
     return row_to_review(row)
 
 @app.get("/musicas/{id}/rating")
@@ -212,3 +242,89 @@ def rating_by_musica(id: int):
         avg, cnt = cur.fetchone()
     # avg pode ser None se não houver reviews
     return {"musica_id": id, "media": avg, "qtde": cnt}
+
+
+# ----------------------------- Usuários/Auth -----------------------------
+
+class UsuarioIn(BaseModel):
+    """Modelo para Cadastro de Usuário."""
+    nome: str
+    email: str
+    senha: str
+
+class UsuarioOut(BaseModel):
+    """Modelo de Saída para Usuário (Sem a senha)."""
+    id: int
+    nome: str
+    email: str
+
+class LoginIn(BaseModel):
+    """Modelo para Login."""
+    email: str
+    senha: str
+
+class TokenOut(BaseModel):
+    """Modelo de Saída após o Login (Token)."""
+    access_token: str
+    token_type: str = "bearer"
+    usuario: UsuarioOut # para retornar dados do usuário logado
+
+@app.post("/usuarios", response_model=UsuarioOut, status_code=201, tags=["Usuários"])
+def cadastrar_usuario(data: UsuarioIn):
+    """RF001: Permite o cadastro de um novo usuário."""
+    
+    usuario_existente = obter_usuario_por_email(data.email)
+    if usuario_existente:
+        raise HTTPException(
+            status_code=400, 
+            detail="E-mail já cadastrado."
+        )
+
+    hashed_password = hash_password(data.senha)
+    
+    try:
+        usuario_insert(data.nome, data.email, hashed_password)
+        
+        novo_usuario_db = obter_usuario_por_email(data.email)
+        
+        return UsuarioOut(
+            id=novo_usuario_db[0], 
+            nome=novo_usuario_db[1], 
+            email=novo_usuario_db[2] 
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao inserir usuário: {str(e)}"
+        )
+
+@app.post("/login", response_model=TokenOut, tags=["Usuários"])
+def login_usuario(data: LoginIn):
+    """RF002: Permite que o usuário acesse o sistema."""
+    
+    usuario_db = obter_usuario_por_email(data.email)
+    
+    if not usuario_db:
+        raise HTTPException(
+            status_code=401, 
+            detail="Credenciais inválidas."
+        )
+        
+    id_user, nome, email, senha_hash = usuario_db
+    
+    if not verify_password(data.senha, senha_hash):
+        raise HTTPException(
+            status_code=401, 
+            detail="Credenciais inválidas."
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    access_token = create_access_token(
+        data={"sub": email, "id": id_user}, 
+        expires_delta=access_token_expires
+    )
+    
+    usuario_out = UsuarioOut(id=id_user, nome=nome, email=email)
+    
+    return TokenOut(access_token=access_token, usuario=usuario_out)

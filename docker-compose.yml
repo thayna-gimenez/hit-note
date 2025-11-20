@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"  # Mapeia porta 8000 do host para 8000 do contêiner
     volumes:
-      - ./bd_hitnote.db:/app/bd_hitnote.db
+      # - ./bd_hitnote.db:/app/bd_hitnote.db
       - ./backend:/app # Mapeia o código local para dentro do contêiner
                        # Isso faz o --reload funcionar!
     environment:
@@ -15,6 +15,9 @@ services:
       - GENIUS_CLIENT_SECRET=${GENIUS_CLIENT_SECRET}
       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN}
       - GENIUS_API_URL=${GENIUS_API_URL}
+      - JWT_DOMAIN=${JWT_DOMAIN}
+      - JWT_CLIENT_ID=${JWT_CLIENT_ID}
+      - JWT_CLIENT_SECRET=${JWT_CLIENT_SECRET}
 
   # Serviço do Frontend
   frontend:
