@@ -6,7 +6,7 @@ def criarTabelaAlbum():
     with get_connection() as conexao:
         cur = conexao.cursor()
         #cur.execute("DROP TABLE Album")
-        cur.execute("CREATE TABLE Album(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, notaMedia FLOAT, qtdeMusicas INT, artista TEXT, duracao TEXT, genero TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Album(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, notaMedia FLOAT, qtdeMusicas INT, artista TEXT, duracao TEXT, genero TEXT)")
 
 
 # Inserindo dados 

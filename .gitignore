@@ -29,5 +29,11 @@ frontend/.env.*    # ex.: .env.development.local
 **/.cache/
 coverage/
 
+frontend/.env.local
+*.env
+
+bd_hitnote.db
+
+*.env
 *.swp
 *.swo
