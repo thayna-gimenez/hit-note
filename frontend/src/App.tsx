@@ -15,6 +15,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import AllMusics from "./components/AllMusics";
 import MusicDetail from "./components/music-detail";
 import { UserProfile } from "./components/user-profile";
+import { AddMusicPage } from "./pages/AddMusicPage";
 
 function App() {
   return (
@@ -39,6 +40,9 @@ function App() {
                 {/* :id indica que é um parâmetro dinâmico */}
                 <Route path="/musicas/:id" element={<MusicDetail />} /> 
                 <Route path="/perfil" element={<UserProfile />} />
+              
+                {/* Rota de busca genius e adição de música */}
+                <Route path="/adicionar" element={<AddMusicPage />} />
               </Routes>
             </div>
 

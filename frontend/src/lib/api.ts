@@ -6,7 +6,17 @@ export type Musica = {
   nome: string;
   artista: string;
   album: string;
-  duracao: string;
+  data_lancamento: string;
+  url_imagem: string;
+};
+
+export type GeniusResult = {
+  genius_id: number;
+  nome: string;
+  artista: string;
+  album: string;
+  data_lancamento: string;
+  url_imagem_capa: string;
 };
 
 export type MusicaIn = Omit<Musica, "id">;
@@ -17,6 +27,16 @@ export type MusicaPage = {
   page: number;
   page_size: number;
 };
+
+export async function searchGenius(query: string): Promise<GeniusResult[]> {
+  const token = localStorage.getItem('hitnote_token'); 
+  const sp = new URLSearchParams({ query });
+  
+  const r = await fetch(`${BASE}/api/v1/search-genius?${sp.toString()}`);
+  
+  if (!r.ok) throw new Error("Erro ao buscar no Genius");
+  return r.json();
+}
 
 export type Usuario = {
   id: number;
@@ -43,7 +63,6 @@ export type UsuarioFull = {
   stats: UserStats;
 };
 
-// NOVO TIPO PARA ATUALIZAÇÃO
 export type UsuarioUpdateBody = {
   nome: string;
   biografia: string;
@@ -142,7 +161,7 @@ export async function createReview(
 
 export async function getRating(musicaId: number | string): Promise<{
   musica_id: number;
-  media: number | null; // pode vir null se não houver reviews
+  media: number | null; 
   qtde: number;
 }> {
   const r = await fetch(`${BASE}/musicas/${musicaId}/rating`);

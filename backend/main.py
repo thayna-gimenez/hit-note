@@ -31,6 +31,7 @@ from crud.crud_musica import (
     deletarDados as musica_delete,
     contar_busca,
     listar_busca,
+    obterMusicaPorDados
 )
 
 from crud.crud_usuario import (
@@ -50,7 +51,7 @@ from crud.crud_review import (
     inserirReview,
     listarReviewsPorMusica,
     obterReviewPorId,
-    deletarDados as review_delete #DEPOIS?
+    deletarDados as review_delete
 )
 
 app = FastAPI(title="HitNote API")
@@ -84,15 +85,24 @@ class MusicaIn(BaseModel):
     nome: str
     artista: str
     album: str
-    duracao: str
+    data_lancamento: Optional[str] = ""
+    url_imagem: Optional[str] = ""
 
 class MusicaOut(MusicaIn):
     id: int
 
 def rows_to_musicas(rows: List[Tuple]) -> List[MusicaOut]:
-    # rows: [(id, nome, artista, album, duracao), ...]
-    return [MusicaOut(id=r[0], nome=r[1], artista=r[2], album=r[3], duracao=r[4]) for r in rows]
-
+    return [
+        MusicaOut(
+            id=r[0], 
+            nome=r[1], 
+            artista=r[2], 
+            album=r[3], 
+            data_lancamento=r[4], 
+            url_imagem=r[5]
+        ) 
+        for r in rows
+    ]
 class MusicaPage(BaseModel):
     items: List[MusicaOut]
     total: int
@@ -120,19 +130,26 @@ def get_musica(id: int):
 
 @app.post("/musicas", response_model=MusicaOut, status_code=201)
 def create_musica(data: MusicaIn):
-    musica_insert([data.nome, data.artista, data.album, data.duracao])
-    # pega a última inserida direto no SQLite
+    musica_existente = obterMusicaPorDados(data.nome, data.artista, data.album)
+    
+    if musica_existente:
+        print(f"Música '{data.nome}' já existe. Retornando ID {musica_existente[0]}.")
+        return rows_to_musicas([musica_existente])[0]
+
+    musica_insert([data.nome, data.artista, data.album, data.data_lancamento, data.url_imagem])
+    
     with get_connection() as con:
         cur = con.cursor()
         cur.execute("SELECT * FROM Musica ORDER BY id DESC LIMIT 1")
         row = cur.fetchone()
+        
     return rows_to_musicas([row])[0]
 
 @app.put("/musicas/{id}", response_model=MusicaOut)
 def update_musica(id: int, data: MusicaIn):
     # garante que existe
     _ = get_musica(id)
-    musica_update([data.nome, data.artista, data.album, data.duracao, id])
+    musica_update([data.nome, data.artista, data.album, data.data_lancamento, id])
     return get_musica(id)
 
 @app.delete("/musicas/{id}", status_code=204)
@@ -169,11 +186,14 @@ async def search_genius(query: str):
             # Às vezes o Genius não tem um álbum associado
             album_name = track.get("album", {}).get("name") if track.get("album") else "Single"
 
+            r_date = track.get("release_date") or track.get("release_date_for_display") or "Data desc."
+
             results.append({
                 "genius_id": track.get("id"),
                 "nome": track.get("title"),
                 "artista": track.get("primary_artist", {}).get("name"),
                 "album": album_name,
+                "data_lancamento": r_date,
                 "url_imagem_capa": track.get("song_art_image_thumbnail_url"),
             })
         
@@ -212,8 +232,7 @@ def row_to_review(row: Tuple) -> ReviewOut:
 
 @app.get("/musicas/{id}/reviews", response_model=List[ReviewOut])
 def list_reviews_by_musica(id: int):
-    # Descobre o NOME da música a partir do id
-    m = get_musica(id)  # lança 404 se não existir
+    m = get_musica(id)
     
     rows = listarReviewsPorMusica(m.nome)
     
@@ -226,7 +245,7 @@ def create_review_for_musica(id: int, data: ReviewIn, current_user: tuple = Depe
     Se não enviar token válido, retorna 401 Unauthorized.
     """
     
-    m = get_musica(id)  # lança 404 se não existir
+    m = get_musica(id) 
     
     usuario_id = current_user[0] 
     
@@ -243,7 +262,6 @@ def rating_by_musica(id: int):
         cur = con.cursor()
         cur.execute("SELECT AVG(nota), COUNT(*) FROM Review WHERE musica=?", (m.nome,))
         avg, cnt = cur.fetchone()
-    # avg pode ser None se não houver reviews
     return {"musica_id": id, "media": avg, "qtde": cnt}
 
 
@@ -255,7 +273,6 @@ class UsuarioStats(BaseModel):
     followers: int
     likes: int
 class UsuarioIn(BaseModel):
-    """Modelo para Cadastro de Usuário."""
     nome: str
     email: str
     senha: str
@@ -359,7 +376,6 @@ def ler_meu_perfil(current_user: tuple = Depends(get_current_user)):
     """Retorna o perfil completo do usuário logado."""
     user_id = current_user[0]
     
-    # Busca no banco os dados atualizados
     dados = obter_perfil_por_id(user_id)
     
     if not dados:
@@ -387,8 +403,6 @@ def atualizar_meu_perfil(
     """Atualiza os dados do perfil do usuário logado."""
     user_id = current_user[0]
     
-    # Atualiza no banco
     atualizar_perfil(user_id, data.nome, data.biografia, data.url_foto, data.url_capa, data.localizacao)
         
-    # Retorna os dados atualizados
     return ler_meu_perfil(current_user)

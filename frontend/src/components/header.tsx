@@ -22,7 +22,7 @@ export function Header() {
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          
+
           {/* Logo - Agora usa Link */}
           <Link to="/" className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity">
             <Music className="h-8 w-8 text-primary" />
@@ -32,9 +32,9 @@ export function Header() {
           {/* Navigation - Agora usa Links do Router */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link to="/">
-              <Button 
-                variant={isActive('/') ? 'default' : 'ghost'} 
-                size="sm" 
+              <Button
+                variant={isActive('/') ? 'default' : 'ghost'}
+                size="sm"
                 className="flex items-center space-x-2"
               >
                 <Home className="h-4 w-4" />
@@ -43,13 +43,19 @@ export function Header() {
             </Link>
 
             <Link to="/musicas">
-              <Button 
-                variant={isActive('/musicas') ? 'default' : 'ghost'} 
-                size="sm" 
+              <Button
+                variant={isActive('/musicas') ? 'default' : 'ghost'}
+                size="sm"
                 className="flex items-center space-x-2"
               >
                 <Music className="h-4 w-4" />
                 <span>Músicas</span>
+              </Button>
+            </Link>
+
+            <Link to="/adicionar">
+              <Button variant="ghost" size="sm">
+                <Music className="h-4 w-4 mr-2" /> Adicionar
               </Button>
             </Link>
 
@@ -68,39 +74,39 @@ export function Header() {
                 className="pl-10 w-64"
               />
             </div>
-            
+
             <ThemeToggle />
-            
+
             {/* --- ÁREA DE LOGIN / PERFIL --- */}
             {user ? (
               // SE ESTIVER LOGADO:
               <div className="flex items-center gap-2">
                 <Link to="/perfil">
-                    <Button 
-                    variant={isActive('/perfil') ? 'default' : 'ghost'} 
-                    size="sm" 
+                  <Button
+                    variant={isActive('/perfil') ? 'default' : 'ghost'}
+                    size="sm"
                     className="flex items-center space-x-2"
-                    >
+                  >
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">{user.nome.split(' ')[0]}</span> {/* Mostra o primeiro nome */}
-                    </Button>
+                  </Button>
                 </Link>
-                
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleLogout}
-                    title="Sair"
-                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  title="Sair"
+                  className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
                 >
-                    <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
               // SE NÃO ESTIVER LOGADO (VISITANTE):
               <div className="flex items-center gap-2">
                 <Link to="/login">
-                    <Button variant="ghost" size="sm">Entrar</Button>
+                  <Button variant="ghost" size="sm">Entrar</Button>
                 </Link>
               </div>
             )}

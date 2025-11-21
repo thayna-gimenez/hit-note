@@ -12,7 +12,8 @@ def criarTabelaMusica():
                 nome TEXT,
                 artista TEXT,
                 album TEXT,
-                duracao TEXT
+                data_lancamento TEXT,
+                url_imagem TEXT
             )
         """)
 
@@ -21,14 +22,16 @@ def criarTabelaMusica():
 def inserirDados(dados):
     with get_connection() as conexao:
         cur = conexao.cursor()
-        query = "INSERT INTO Musica(nome, artista, album, duracao) VALUES(?,?,?,?)"
+        query = "INSERT INTO Musica(nome, artista, album, data_lancamento, url_imagem) VALUES(?,?,?,?,?)"
         cur.execute(query, dados)
+        conexao.commit()
 
-def atualizarDados(novos_dados):
+def atualizarDados(dados):
     with get_connection() as conexao:
         cur = conexao.cursor()
-        query = "UPDATE Musica SET nome=?, artista=?, album=?, duracao=? WHERE id=?"
-        cur.execute(query, novos_dados)
+        query = "UPDATE Musica SET nome=?, artista=?, album=?, data_lancamento=?, url_imagem=? WHERE id=?"
+        cur.execute(query, dados)
+        conexao.commit()
 
 def deletarDados(id):
     with get_connection() as conexao:
@@ -57,6 +60,22 @@ def verLinha(id):
         for linha in linhas:
             ver_linha.append(linha)
     return ver_linha
+
+def obterMusicaPorDados(nome, artista, album):
+    """
+    Verifica se já existe uma música com o mesmo Nome, Artista e Álbum.
+    Retorna a linha (tupla) se existir, ou None.
+    """
+    with get_connection() as conexao:
+        cur = conexao.cursor()
+        query = """
+            SELECT * FROM Musica 
+            WHERE LOWER(nome) = LOWER(?) 
+            AND LOWER(artista) = LOWER(?) 
+            AND LOWER(album) = LOWER(?)
+        """
+        cur.execute(query, (nome, artista, album))
+        return cur.fetchone()
 
 # ------------------ BUSCA + PAGINAÇÃO ------------------
 
@@ -91,7 +110,7 @@ def listar_busca(q: str | None, order: str, limit: int, offset: int):
     with get_connection() as conexao:
         cur = conexao.cursor()
         cur.execute(
-            f"SELECT id, nome, artista, album, duracao FROM Musica {where} "
+            f"SELECT * FROM Musica {where} "
             f"ORDER BY {order_sql} LIMIT ? OFFSET ?",
             (*params, limit, offset),
         )
