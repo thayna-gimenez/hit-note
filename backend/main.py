@@ -37,6 +37,9 @@ from crud.crud_usuario import (
     criarTabelaUsuario,
     inserirDados as usuario_insert,
     obter_usuario_por_email,
+    obter_perfil_por_id,
+    atualizar_perfil,
+    obter_estatisticas_usuario,
     hash_password,
     verify_password,
 )
@@ -246,6 +249,11 @@ def rating_by_musica(id: int):
 
 # ----------------------------- Usuários/Auth -----------------------------
 
+class UsuarioStats(BaseModel):
+    total_reviews: int
+    media_reviews: float
+    followers: int
+    likes: int
 class UsuarioIn(BaseModel):
     """Modelo para Cadastro de Usuário."""
     nome: str
@@ -253,11 +261,21 @@ class UsuarioIn(BaseModel):
     senha: str
 
 class UsuarioOut(BaseModel):
-    """Modelo de Saída para Usuário (Sem a senha)."""
     id: int
     nome: str
     email: str
 
+class UsuarioProfileOut(BaseModel):
+    id: int
+    nome: str
+    email: str
+    biografia: Optional[str] = ""
+    url_foto: Optional[str] = ""
+    url_capa: Optional[str] = ""
+    localizacao: Optional[str] = ""
+    data_cadastro: Optional[str] = ""
+    stats: UsuarioStats
+    
 class LoginIn(BaseModel):
     """Modelo para Login."""
     email: str
@@ -268,6 +286,13 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     usuario: UsuarioOut # para retornar dados do usuário logado
+
+class UsuarioProfileUpdate(BaseModel):
+    nome: str
+    biografia: str
+    url_foto: str
+    url_capa: str
+    localizacao: str
 
 @app.post("/usuarios", response_model=UsuarioOut, status_code=201, tags=["Usuários"])
 def cadastrar_usuario(data: UsuarioIn):
@@ -328,3 +353,42 @@ def login_usuario(data: LoginIn):
     usuario_out = UsuarioOut(id=id_user, nome=nome, email=email)
     
     return TokenOut(access_token=access_token, usuario=usuario_out)
+
+@app.get("/usuarios/me", response_model=UsuarioProfileOut)
+def ler_meu_perfil(current_user: tuple = Depends(get_current_user)):
+    """Retorna o perfil completo do usuário logado."""
+    user_id = current_user[0]
+    
+    # Busca no banco os dados atualizados
+    dados = obter_perfil_por_id(user_id)
+    
+    if not dados:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+    estatisticas = obter_estatisticas_usuario(user_id)
+    
+    return UsuarioProfileOut(
+        id=dados[0],
+        nome=dados[1],
+        email=dados[2],
+        biografia=dados[3],
+        url_foto=dados[4],
+        url_capa=dados[5],
+        localizacao=dados[6],
+        data_cadastro=dados[7],
+        stats=estatisticas
+    )
+    
+@app.put("/usuarios/me", response_model=UsuarioProfileOut)
+def atualizar_meu_perfil(
+    data: UsuarioProfileUpdate, 
+    current_user: tuple = Depends(get_current_user)
+):
+    """Atualiza os dados do perfil do usuário logado."""
+    user_id = current_user[0]
+    
+    # Atualiza no banco
+    atualizar_perfil(user_id, data.nome, data.biografia, data.url_foto, data.url_capa, data.localizacao)
+        
+    # Retorna os dados atualizados
+    return ler_meu_perfil(current_user)

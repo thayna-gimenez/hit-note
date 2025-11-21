@@ -24,6 +24,34 @@ export type Usuario = {
   email: string;
 };
 
+export type UserStats = {
+  total_reviews: number;
+  media_reviews: number;
+  followers: number;
+  likes: number;
+};
+
+export type UsuarioFull = {
+  id: number;
+  nome: string;
+  email: string;
+  biografia: string;
+  url_foto: string;
+  url_capa: string;
+  localizacao: string;  
+  data_cadastro: string; 
+  stats: UserStats;
+};
+
+// NOVO TIPO PARA ATUALIZAÇÃO
+export type UsuarioUpdateBody = {
+  nome: string;
+  biografia: string;
+  url_foto: string;
+  url_capa: string;
+  localizacao: string;
+};
+
 export type AuthResponse = {
   access_token: string;
   token_type: string;
@@ -160,5 +188,30 @@ export async function registerUser(nome: string, email: string, senha: string): 
     throw new Error(msg);
   }
 
+  return r.json();
+}
+
+// --- FUNÇÕES DE PERFIL ---
+
+export async function getMyProfile(): Promise<UsuarioFull> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/usuarios/me`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error("Erro ao carregar perfil");
+  return r.json();
+}
+
+export async function updateMyProfile(data: UsuarioUpdateBody): Promise<UsuarioFull> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/usuarios/me`, {
+    method: "PUT",
+    headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}` 
+    },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Erro ao atualizar perfil");
   return r.json();
 }

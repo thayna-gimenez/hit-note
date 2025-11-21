@@ -1,36 +1,21 @@
-import { Calendar, Heart, List, Music, Play, Settings, Users } from "lucide-react"
-import { Button } from "./ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
-import { MusicCard } from "./music-card"
-import { StarRating } from "./star-rating"
-import { ImageWithFallback } from "./figma/ImageWithFallback"
+import { useEffect, useState } from "react";
+import { Calendar, Heart, List, Music, Save, X, Edit2, MapPin } from "lucide-react";
+import { Button } from "./ui/button";
+import { Card, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { MusicCard } from "./music-card";
+import { StarRating } from "./star-rating";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-interface UserProfileProps {
-  onMusicClick: (musicId: string) => void
-}
+// Integração com API e Contexto
+import { useAuth } from "../contexts/AuthContext";
+import { getMyProfile, updateMyProfile, type UsuarioFull } from "../lib/api";
 
-// Mock user data
-const userData = {
-  id: "user1",
-  name: "João Silva",
-  username: "joaomusic",
-  avatar: "https://images.unsplash.com/photo-1585972949678-b7eff107d061?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1c2VyJTIwcHJvZmlsZSUyMGF2YXRhciUyMG11c2ljaWFufGVufDF8fHx8MTc1ODU3MjI5Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  bio: "Apaixonado por música de todos os gêneros. Sempre buscando novos sons e compartilhando descobertas musicais.",
-  joinDate: "Janeiro 2022",
-  location: "São Paulo, Brasil",
-  stats: {
-    totalRatings: 247,
-    avgRating: 4.2,
-    followers: 156,
-    following: 89,
-    listsCreated: 12,
-    songsLiked: 1.4
-  }
-}
-
+// --- DADOS MOCKADOS (Mantidos para as abas funcionarem visualmente) ---
 const favoriteMusics = [
   {
     id: "fav1",
@@ -38,7 +23,7 @@ const favoriteMusics = [
     artist: "Queen",
     album: "A Night at the Opera",
     year: 1975,
-    coverImage: "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGFsYnVtJTIwY292ZXJzJTIwdmlueWx8ZW58MXx8fHwxNzU4NTQxMDM5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    coverImage: "https://images.unsplash.com/photo-1629923759854-156b88c433aa?q=80&w=1080",
     rating: 4.8,
     userRating: 5,
     genre: "Rock",
@@ -51,40 +36,14 @@ const favoriteMusics = [
     artist: "Radiohead",
     album: "OK Computer",
     year: 1997,
-    coverImage: "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25jZXJ0JTIwc3RhZ2UlMjBtdXNpY3xlbnwxfHx8fDE3NTg1NTM0Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    coverImage: "https://images.unsplash.com/photo-1738667181188-a63ec751a646?q=80&w=1080",
     rating: 4.7,
     userRating: 5,
     genre: "Alternative",
     duration: "6:23",
     isLiked: true
-  },
-  {
-    id: "fav3",
-    title: "Purple Haze",
-    artist: "Jimi Hendrix",
-    album: "Are You Experienced",
-    year: 1967,
-    coverImage: "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGhlYWRwaG9uZXMlMjBzdHVkaW98ZW58MXx8fHwxNzU4NTYwMzc1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    rating: 4.6,
-    userRating: 5,
-    genre: "Psychedelic Rock",
-    duration: "2:50",
-    isLiked: true
-  },
-  {
-    id: "fav4",
-    title: "Billie Jean",
-    artist: "Michael Jackson",
-    album: "Thriller",
-    year: 1982,
-    coverImage: "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGhlYWRwaG9uZXMlMjBzdHVkaW98ZW58MXx8fHwxNzU4NTYwMzc1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    rating: 4.7,
-    userRating: 5,
-    genre: "Pop",
-    duration: "4:54",
-    isLiked: true
   }
-]
+];
 
 const userLists = [
   {
@@ -94,7 +53,7 @@ const userLists = [
     songCount: 25,
     isPublic: true,
     createdAt: "2024-01-15",
-    coverImage: "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGFsYnVtJTIwY292ZXJzJTIwdmlueWx8ZW58MXx8fHwxNzU4NTQxMDM5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    coverImage: "https://images.unsplash.com/photo-1629923759854-156b88c433aa?q=80&w=1080"
   },
   {
     id: "list2",
@@ -103,18 +62,9 @@ const userLists = [
     songCount: 18,
     isPublic: true,
     createdAt: "2024-01-01",
-    coverImage: "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25jZXJ0JTIwc3RhZ2UlMjBtdXNpY3xlbnwxfHx8fDE3NTg1NTM0Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-  },
-  {
-    id: "list3",
-    name: "Para Relaxar",
-    description: "Músicas calmas para momentos de tranquilidade",
-    songCount: 32,
-    isPublic: false,
-    createdAt: "2023-12-10",
-    coverImage: "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGhlYWRwaG9uZXMlMjBzdHVkaW98ZW58MXx8fHwxNzU4NTYwMzc1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+    coverImage: "https://images.unsplash.com/photo-1738667181188-a63ec751a646?q=80&w=1080"
   }
-]
+];
 
 const recentActivity = [
   {
@@ -131,103 +81,247 @@ const recentActivity = [
     action: "Curtiu",
     target: "Stairway to Heaven - Led Zeppelin",
     date: "1 dia atrás"
-  },
-  {
-    id: "act3",
-    type: "list",
-    action: "Criou a lista",
-    target: "Descobertas de 2024",
-    date: "3 dias atrás"
-  },
-  {
-    id: "act4",
-    type: "rating",
-    action: "Avaliou",
-    target: "Imagine - John Lennon",
-    rating: 4,
-    date: "5 dias atrás"
   }
-]
+];
 
-export function UserProfile({ onMusicClick }: UserProfileProps) {
+// --- COMPONENTE PRINCIPAL ---
+
+export function UserProfile() {
+  const { user } = useAuth();
+
+  // Estados de Dados Reais
+  const [profile, setProfile] = useState<UsuarioFull | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Estados de Edição
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nome: "",
+    biografia: "",
+    url_foto: "",
+    url_capa: "",
+    localizacao: ""
+  });
+
+  // Carregar dados do Backend
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getMyProfile();
+        console.log("Dados recebidos do perfil:", data); // <--- Para debug no F12
+        setProfile(data);
+        setEditForm({
+          nome: data.nome,
+          biografia: data.biografia || "",
+          url_foto: data.url_foto || "",
+          url_capa: data.url_capa || "",
+          localizacao: data.localizacao || ""
+        });
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (user) load();
+  }, [user]);
+
+  // Salvar Alterações
+  async function handleSave() {
+    try {
+      const updated = await updateMyProfile(editForm);
+      setProfile(updated);
+      setIsEditing(false);
+    } catch (error) {
+      alert("Erro ao atualizar perfil. Verifique os dados.");
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Recentemente";
+    const [ano, mes, dia] = dateString.split('-');
+    return `${dia}/${mes}/${ano}`;
+  };
+
+  if (!user) return <div className="container py-8 text-center">Faça login para ver seu perfil.</div>;
+  if (loading) return <div className="container py-8 text-center">Carregando...</div>;
+  if (!profile) return <div className="container py-8 text-center">Erro ao carregar dados do perfil.</div>;
+
+  // Defesa contra crash: Se stats vier undefined, usamos valores padrão
+  const stats = profile.stats || { total_reviews: 0, media_reviews: 0, followers: 0, likes: 0 };
+  
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Profile Header */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
-        <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
-        <div className="relative z-10 p-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar */}
-            <Avatar className="h-32 w-32 border-4 border-white/20">
-              <AvatarImage src={userData.avatar} alt={userData.name} />
-              <AvatarFallback className="text-2xl">{userData.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-            </Avatar>
+    <div className="container mx-auto px-4 py-8 space-y-8 pb-20">
+      
+      {/* --- HEADER DO PERFIL (Área Editável) --- */}
+      <div className="relative overflow-hidden rounded-lg bg-zinc-900 shadow-xl min-h-[320px]">
+        
+        {/* Capa de Fundo (Imagem ou Gradiente) */}
+        <div className="absolute inset-0">
+            {profile.url_capa ? (
+                <ImageWithFallback 
+                    src={profile.url_capa} 
+                    alt="Capa" 
+                    className={`w-full h-full object-cover ${isEditing ? 'opacity-40 blur-sm' : 'opacity-80'}`}
+                />
+            ) : (
+                <div className="w-full h-full bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900" />
+            )}
+             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        </div>
 
-            {/* User Info */}
-            <div className="flex-1 text-white space-y-4">
+        {/* Input de Capa (Só aparece editando) */}
+        {isEditing && (
+            <div className="absolute top-4 right-4 left-4 z-20">
+                <label className="text-xs text-white/70 ml-1">URL da Capa</label>
+                <Input 
+                    placeholder="Cole a URL da imagem de capa aqui..." 
+                    className="bg-black/60 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md"
+                    value={editForm.url_capa}
+                    onChange={e => setEditForm({...editForm, url_capa: e.target.value})}
+                />
+            </div>
+        )}
+
+        {/* Conteúdo do Header */}
+        <div className="relative z-10 p-8 pt-24 md:pt-32">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
+            
+            {/* Avatar */}
+            <div className="relative group shrink-0">
+              <Avatar className="h-32 w-32 border-4 border-black/50 shadow-2xl">
+                <AvatarImage src={profile.url_foto} className="object-cover" />
+                <AvatarFallback className="text-4xl bg-zinc-800 text-white font-bold">
+                    {profile.nome[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Input de Avatar (Overlay) */}
+              {isEditing && (
+                 <div className="absolute -bottom-2 left-0 right-0">
+                    <Input 
+                        placeholder="URL Foto" 
+                        className="h-6 text-[10px] bg-black/80 border-none text-center text-white"
+                        value={editForm.url_foto}
+                        onChange={e => setEditForm({...editForm, url_foto: e.target.value})}
+                    />
+                 </div>
+              )}
+            </div>
+
+            {/* Info do Usuário */}
+            <div className="flex-1 text-white space-y-4 w-full">
               <div>
-                <h1 className="text-3xl font-bold">{userData.name}</h1>
-                <p className="text-white/80">@{userData.username}</p>
-                <p className="text-white/90 mt-2">{userData.bio}</p>
+                {isEditing ? (
+                    <div className="space-y-2">
+                        <label className="text-xs text-white/70">Nome</label>
+                        <Input 
+                            className="text-2xl font-bold bg-white/10 border-white/20 text-white h-auto py-2"
+                            value={editForm.nome}
+                            onChange={e => setEditForm({...editForm, nome: e.target.value})}
+                        />
+                    </div>
+                ) : (
+                    <h1 className="text-3xl font-bold drop-shadow-md">{profile.nome}</h1>
+                )}
+                
+                <p className="text-white/70 font-medium">@{profile.email.split('@')[0]}</p>
+                
+                <div className="mt-3">
+                    {isEditing ? (
+                         <div className="space-y-1">
+                            <label className="text-xs text-white/70">Biografia</label>
+                            <Textarea 
+                                className="bg-white/10 border-white/20 text-white min-h-[80px]"
+                                placeholder="Sua biografia..."
+                                value={editForm.biografia}
+                                onChange={e => setEditForm({...editForm, biografia: e.target.value})}
+                            />
+                         </div>
+                    ) : (
+                        <p className="text-white/90 max-w-2xl">{profile.biografia || "Sem biografia."}</p>
+                    )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-sm text-white/80">
+              {/* Metadados Fixos */}
+              <div className="flex flex-wrap gap-4 text-sm text-white/70">
                 <div className="flex items-center space-x-1">
                   <Calendar className="h-4 w-4" />
-                  <span>Membro desde {userData.joinDate}</span>
+                  <span>Membro desde {formatDate(profile.data_cadastro)}</span>
                 </div>
+                
                 <div className="flex items-center space-x-1">
-                  <span>📍 {userData.location}</span>
+                  <MapPin className="h-4 w-4" />
+                  {isEditing ? (
+                      <Input 
+                        className="h-6 w-32 bg-white/10 border-white/20 text-white text-xs"
+                        placeholder="Localização"
+                        value={editForm.localizacao}
+                        onChange={e => setEditForm({...editForm, localizacao: e.target.value})}
+                      />
+                  ) : (
+                      <span>{profile.localizacao || "Localização não definida"}</span>
+                  )}
                 </div>
               </div>
-
-              <div className="flex items-center space-x-4">
-                <Button variant="secondary" size="sm">
-                  <Users className="h-4 w-4 mr-2" />
-                  Seguir
-                </Button>
-                <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-black">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              </div>
+            </div>
+            
+            {/* Botões de Ação */}
+            <div className="flex flex-row gap-2 mt-4 md:mt-0 shrink-0">
+                {isEditing ? (
+                    <>
+                        <Button variant="destructive" size="sm" onClick={() => setIsEditing(false)}>
+                            <X className="h-4 w-4 mr-2" /> Cancelar
+                        </Button>
+                        <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm" onClick={handleSave}>
+                            <Save className="h-4 w-4 mr-2" /> Salvar
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button variant="outline" size="sm" className="bg-black/20 border-white/30 text-white hover:bg-white hover:text-black" onClick={() => setIsEditing(true)}>
+                            <Edit2 className="h-4 w-4 mr-2" /> Editar Perfil
+                        </Button>
+                    </>
+                )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* --- ESTATÍSTICAS --- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{userData.stats.totalRatings}</div>
+            <div className="text-2xl font-bold text-primary">{profile.stats.total_reviews}</div>
             <div className="text-sm text-muted-foreground">Avaliações</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center space-x-1">
-              <span className="text-2xl font-bold text-primary">{userData.stats.avgRating}</span>
-              <StarRating rating={userData.stats.avgRating} size="sm" />
+              <span className="text-2xl font-bold text-primary">{profile.stats.media_reviews.toFixed(1)}</span>
+              <StarRating rating={profile.stats.media_reviews} size="sm" />
             </div>
             <div className="text-sm text-muted-foreground">Média</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{userData.stats.followers}</div>
+            <div className="text-2xl font-bold text-primary">{profile.stats.followers}</div>
             <div className="text-sm text-muted-foreground">Seguidores</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{userData.stats.songsLiked}k</div>
+            <div className="text-2xl font-bold text-primary">{profile.stats.likes}</div>
             <div className="text-sm text-muted-foreground">Curtidas</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Profile Content */}
+      {/* --- ABAS (Conteúdo Visual Mockado) --- */}
       <Tabs defaultValue="favorites" className="space-y-6">
         <TabsList className="grid grid-cols-3 lg:grid-cols-4 w-full">
           <TabsTrigger value="favorites" className="flex items-center space-x-2">
@@ -244,6 +338,7 @@ export function UserProfile({ onMusicClick }: UserProfileProps) {
           </TabsTrigger>
         </TabsList>
 
+        {/* Conteúdo da Aba Favoritos */}
         <TabsContent value="favorites" className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">Músicas Favoritas</h2>
@@ -261,6 +356,7 @@ export function UserProfile({ onMusicClick }: UserProfileProps) {
           </div>
         </TabsContent>
 
+        {/* Conteúdo da Aba Listas */}
         <TabsContent value="lists" className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -301,6 +397,7 @@ export function UserProfile({ onMusicClick }: UserProfileProps) {
           </div>
         </TabsContent>
 
+        {/* Conteúdo da Aba Atividade */}
         <TabsContent value="activity" className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">Atividade Recente</h2>
@@ -319,7 +416,7 @@ export function UserProfile({ onMusicClick }: UserProfileProps) {
                           <span className="font-medium">{activity.action}</span>{" "}
                           <span className="text-muted-foreground">{activity.target}</span>
                           {activity.rating && (
-                            <span className="ml-2">
+                            <span className="ml-2 inline-block">
                               <StarRating rating={activity.rating} size="sm" />
                             </span>
                           )}
@@ -335,5 +432,5 @@ export function UserProfile({ onMusicClick }: UserProfileProps) {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

@@ -1,4 +1,5 @@
 import sqlite3 as lite
+from datetime import datetime
 from bd import get_connection
 from passlib.context import CryptContext
 
@@ -33,16 +34,50 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def criarTabelaUsuario():
     with get_connection() as conexao:
         cur = conexao.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS Usuario(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, email TEXT UNIQUE, senha_hash TEXT)")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Usuario(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            nome TEXT, 
+            email TEXT UNIQUE, 
+            senha_hash TEXT,
+            biografia TEXT,
+            url_foto TEXT,
+            url_capa TEXT,
+            localizacao TEXT,
+            data_cadastro TEXT)""")
+        
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS Seguidores(
+                seguidor_id INTEGER,
+                seguido_id INTEGER,
+                PRIMARY KEY(seguidor_id, seguido_id),
+                FOREIGN KEY(seguidor_id) REFERENCES Usuario(id),
+                FOREIGN KEY(seguido_id) REFERENCES Usuario(id)
+            )
+        """)
+    
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS Curtida(
+                usuario_id INTEGER,
+                musica_nome TEXT, 
+                PRIMARY KEY(usuario_id, musica_nome),
+                FOREIGN KEY(usuario_id) REFERENCES Usuario(id)
+            )
+        """)    
 
 # Inserindo dados 
 def inserirDados(nome, email, senha_hash):
     """Insere um novo usuário no banco."""
     try:
+        data_hoje = datetime.now().strftime("%Y-%m-%d")
+        
         with get_connection() as conexao:
             cur = conexao.cursor()
-            query = "INSERT INTO Usuario(nome, email, senha_hash) VALUES(?,?,?)"
-            cur.execute(query, (nome, email, senha_hash))
+            query = """
+            INSERT INTO Usuario(nome, email, senha_hash, biografia, url_foto, url_capa, localizacao, data_cadastro) 
+            VALUES(?,?,?, '', '', '', '', ?)
+            """
+            cur.execute(query, (nome, email, senha_hash, data_hoje))
             conexao.commit()
     except lite.IntegrityError:
         print(f"Erro: O email {email} já está cadastrado.")
@@ -51,39 +86,14 @@ def inserirDados(nome, email, senha_hash):
         print(f"Erro ao inserir dados: {e}")
         raise
 
-# # Atualizando dados
-# def atualizarDados(novos_dados):
-#     with get_connection() as conexao:
-#         cur = conexao.cursor()
-#         query = "UPDATE Usuario SET nome=?, username=?, senha=?, email=? WHERE id=?"
-#         cur.execute(query, novos_dados)
-
-# # Deletando dados
-# def deletarDados(id):
-#     with get_connection() as conexao:
-#         cur = conexao.cursor()
-#         query = "DELETE FROM Usuario WHERE id=?"
-#         cur.execute(query, id)
-
-# # Vendo dados
-# def visualizarDados():
-#     ver_dados = []
-#     with get_connection() as conexao:
-#         cur = conexao.cursor()
-#         query = "SELECT * FROM Usuario"
-#         cur.execute(query)
-
-#         linhas = cur.fetchall()
-#         for linha in linhas:
-#             ver_dados.append(linha)
-    
-#     return ver_dados
-
-def verLinha(id):
-    # Retorna (id, nome, email, senha_hash) ou None
+def obter_perfil_por_id(id):
+    """Retorna dados do perfil + data_cadastro + localizacao."""
     with get_connection() as conexao:
         cur = conexao.cursor()
-        query = "SELECT id, nome, email, senha_hash FROM Usuario WHERE id=?"
+        query = """
+            SELECT id, nome, email, biografia, url_foto, url_capa, localizacao, data_cadastro 
+            FROM Usuario WHERE id=?
+        """
         cur.execute(query, (id,))
         return cur.fetchone()
     
@@ -94,3 +104,39 @@ def obter_usuario_por_email(email):
         query = "SELECT id, nome, email, senha_hash FROM Usuario WHERE email=?"
         cur.execute(query, (email,))
         return cur.fetchone()
+    
+def atualizar_perfil(id, nome, biografia, url_foto, url_capa, localizacao):
+    """Atualiza dados editáveis do perfil."""
+    with get_connection() as conexao:
+        cur = conexao.cursor()
+        query = """
+            UPDATE Usuario 
+            SET nome=?, biografia=?, url_foto=?, url_capa=?, localizacao=?
+            WHERE id=?
+        """
+        cur.execute(query, (nome, biografia, url_foto, url_capa, localizacao, id))
+        conexao.commit()
+        
+# --- Estatísticas ---
+
+def obter_estatisticas_usuario(user_id):
+    """Calcula: Total Reviews, Média Nota, Seguidores, Curtidas."""
+    stats = {}
+    with get_connection() as con:
+        cur = con.cursor()
+        
+        # 1. Total de Avaliações e Média
+        cur.execute("SELECT COUNT(*), AVG(nota) FROM Review WHERE usuario_id=?", (user_id,))
+        total_reviews, media_reviews = cur.fetchone()
+        stats['total_reviews'] = total_reviews or 0
+        stats['media_reviews'] = media_reviews or 0.0
+
+        # 2. Total de Seguidores (quantas pessoas seguem esse user_id)
+        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguido_id=?", (user_id,))
+        stats['followers'] = cur.fetchone()[0]
+
+        # 3. Total de Curtidas (quantas músicas esse usuário curtiu)
+        cur.execute("SELECT COUNT(*) FROM Curtida WHERE usuario_id=?", (user_id,))
+        stats['likes'] = cur.fetchone()[0]
+        
+    return stats
