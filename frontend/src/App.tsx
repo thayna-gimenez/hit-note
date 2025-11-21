@@ -1,232 +1,61 @@
-import { useState } from "react";
-import { TrendingUp, Clock, Heart, Music } from "lucide-react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Music } from "lucide-react";
 
-// Providers e componentes do Figma
+// Providers
 import { ThemeProvider } from "./components/theme-provider";
+import { AuthProvider } from "./contexts/AuthContext";
+
+// Components Fixos
 import { Header } from "./components/header";
-import { HeroSection } from "./components/hero-section";
-import { FeaturedSection } from "./components/featured-section";
+
+// Páginas
+import { Home } from "./pages/Home";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import AllMusics from "./components/AllMusics";
+import MusicDetail from "./components/music-detail";
 import { UserProfile } from "./components/user-profile";
 
-// >>> Estes dois foram alterados para DEFAULT EXPORT <<<
-// Arquivo existe como src/components/music-detail.tsx (minúsculo mesmo)
-import MusicDetail from "./components/music-detail";
-// Arquivo existe como src/components/AllMusics.tsx (com A maiúsculo)
-import AllMusics from "./components/AllMusics";
-
-// ----- Mock de dados do Figma (mantidos) -----
-const featuredMusic = {
-  id: "1",
-  title: "Bohemian Rhapsody",
-  artist: "Queen",
-  album: "A Night at the Opera",
-  year: 1975,
-  coverImage:
-    "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  rating: 4.8,
-  genre: "Rock",
-  duration: "5:55",
-  description:
-    "Uma obra-prima do rock progressivo que combina ópera, hard rock e balada em uma experiência musical única e inesquecível.",
-};
-
-const trendingMusics = [
-  {
-    id: "2",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    year: 2020,
-    coverImage:
-      "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.6,
-    userRating: 5,
-    genre: "Pop",
-    duration: "3:20",
-    isLiked: true,
-  },
-  {
-    id: "3",
-    title: "Shape of You",
-    artist: "Ed Sheeran",
-    album: "÷ (Divide)",
-    year: 2017,
-    coverImage:
-      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.4,
-    userRating: 4,
-    genre: "Pop",
-    duration: "3:53",
-  },
-  {
-    id: "4",
-    title: "Hotel California",
-    artist: "Eagles",
-    album: "Hotel California",
-    year: 1976,
-    coverImage:
-      "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.9,
-    genre: "Rock",
-    duration: "6:30",
-  },
-];
-
-const recentlyPlayed = [
-  {
-    id: "8",
-    title: "Bad Guy",
-    artist: "Billie Eilish",
-    album: "WHEN WE ALL FALL ASLEEP, WHERE DO WE GO?",
-    year: 2019,
-    coverImage:
-      "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.3,
-    userRating: 5,
-    genre: "Alternative",
-    duration: "3:14",
-    isLiked: true,
-  },
-  {
-    id: "9",
-    title: "Someone Like You",
-    artist: "Adele",
-    album: "21",
-    year: 2011,
-    coverImage:
-      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.5,
-    userRating: 4,
-    genre: "Soul",
-    duration: "4:45",
-  },
-];
-
-const favoriteMusics = [
-  {
-    id: "12",
-    title: "Paranoid Android",
-    artist: "Radiohead",
-    album: "OK Computer",
-    year: 1997,
-    coverImage:
-      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.7,
-    userRating: 5,
-    genre: "Alternative",
-    duration: "6:23",
-    isLiked: true,
-  },
-  {
-    id: "13",
-    title: "Smells Like Teen Spirit",
-    artist: "Nirvana",
-    album: "Nevermind",
-    year: 1991,
-    coverImage:
-      "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.5,
-    userRating: 5,
-    genre: "Grunge",
-    duration: "5:01",
-    isLiked: true,
-  },
-];
-
-function AppContent() {
-  const [currentView, setCurrentView] =
-    useState<"home" | "profile" | "music" | "allMusics">("home");
-  const [selectedMusicId, setSelectedMusicId] = useState<string>("");
-
-  const handleNavigate = (view: string) => {
-    setCurrentView(view as "home" | "profile" | "music" | "allMusics");
-  };
-
-  const handleMusicClick = (musicId: string) => {
-    setSelectedMusicId(musicId);
-    setCurrentView("music");
-  };
-
-  const handleBackToHome = () => {
-    setCurrentView("home");
-    setSelectedMusicId("");
-  };
-
-  const renderContent = () => {
-    switch (currentView) {
-      case "profile":
-        return <UserProfile onMusicClick={handleMusicClick} />;
-
-      case "music":
-        return (
-          <MusicDetail musicId={selectedMusicId} onBack={handleBackToHome} />
-        );
-
-      case "allMusics":
-        return <AllMusics />;
-
-      default:
-        return (
-          <main className="container mx-auto px-4 py-8 space-y-12">
-            <HeroSection featuredMusic={featuredMusic} />
-
-            <FeaturedSection
-              title="Em Alta"
-              subtitle="As músicas mais populares do momento"
-              icon={<TrendingUp className="h-6 w-6 text-orange-500" />}
-              musics={trendingMusics}
-              showMore
-              onMusicClick={handleMusicClick}
-            />
-
-            <FeaturedSection
-              title="Tocadas Recentemente"
-              subtitle="Continue de onde parou"
-              icon={<Clock className="h-6 w-6 text-blue-500" />}
-              musics={recentlyPlayed}
-              showMore
-              onMusicClick={handleMusicClick}
-            />
-
-            <FeaturedSection
-              title="Suas Favoritas"
-              subtitle="Músicas que você mais ama"
-              icon={<Heart className="h-6 w-6 text-red-500" />}
-              musics={favoriteMusics}
-              showMore
-              onMusicClick={handleMusicClick}
-            />
-          </main>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
-      {currentView !== "music" && (
-        <Header currentView={currentView} onNavigate={handleNavigate} />
-      )}
-
-      {renderContent()}
-
-      {currentView === "home" && (
-        <footer className="border-t bg-card/50 mt-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-              <Music className="h-5 w-5" />
-              <span>Hit.Note - Avalie, descubra e compartilhe música</span>
-            </div>
-          </div>
-        </footer>
-      )}
-    </div>
-  );
-}
-
-export default function App() {
+function App() {
   return (
     <ThemeProvider defaultTheme="light">
-      <AppContent />
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
+            {/* O Header fica fora das Routes para aparecer em todas as telas */}
+            <Header />
+
+            <div className="flex-grow">
+              <Routes>
+                {/* Rota principal (Home) */}
+                <Route path="/" element={<Home />} />
+
+                {/* Rotas de Auth */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+
+                {/* Rotas de Funcionalidades */}
+                <Route path="/musicas" element={<AllMusics />} />
+                {/* :id indica que é um parâmetro dinâmico */}
+                <Route path="/musicas/:id" element={<MusicDetail />} /> 
+                <Route path="/perfil" element={<UserProfile />} />
+              </Routes>
+            </div>
+
+            {/* Footer (aparece em todas as telas, se preferir) */}
+            <footer className="border-t bg-card/50 mt-16">
+              <div className="container mx-auto px-4 py-8">
+                <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                  <Music className="h-5 w-5" />
+                  <span>Hit.Note - Avalie, descubra e compartilhe música</span>
+                </div>
+              </div>
+            </footer>
+          </div>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
+
+export default App;

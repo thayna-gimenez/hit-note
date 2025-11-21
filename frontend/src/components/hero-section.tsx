@@ -72,11 +72,11 @@ export function HeroSection({ featuredMusic }: HeroSectionProps) {
                 <Play className="h-5 w-5 mr-2" />
                 Reproduzir
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
+              <Button size="lg" className="bg-white text-black hover:bg-white/90">
                 <Heart className="h-5 w-5 mr-2" />
                 Favoritar
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
+              <Button size="lg" className="bg-white text-black hover:bg-white/90">
                 <Plus className="h-5 w-5 mr-2" />
                 Adicionar à Lista
               </Button>

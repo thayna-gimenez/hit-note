@@ -18,6 +18,18 @@ export type MusicaPage = {
   page_size: number;
 };
 
+export type Usuario = {
+  id: number;
+  nome: string;
+  email: string;
+};
+
+export type AuthResponse = {
+  access_token: string;
+  token_type: string;
+  usuario: Usuario;
+};
+
 export async function getMusicasPage(params?: {
   q?: string;
   page?: number;
@@ -58,6 +70,7 @@ export type Review = {
   musica: string;   // nome da música salvo no backend
   nota: number;     // 0..5
   comentario: string;
+  autor: string;
 };
 
 export type ReviewIn = {
@@ -75,11 +88,26 @@ export async function createReview(
   musicaId: number | string,
   data: ReviewIn
 ): Promise<Review> {
+  const token = localStorage.getItem('hitnote_token');
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const r = await fetch(`${BASE}/musicas/${musicaId}/reviews`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify(data),
   });
+
+  if (r.status === 401) {
+    throw new Error("Você precisa estar logado para avaliar.");
+  }
+
   if (!r.ok) throw new Error(`Falha ao criar review: ${r.status}`);
   return r.json();
 }
@@ -91,5 +119,46 @@ export async function getRating(musicaId: number | string): Promise<{
 }> {
   const r = await fetch(`${BASE}/musicas/${musicaId}/rating`);
   if (!r.ok) throw new Error(`Falha ao carregar rating: ${r.status}`);
+  return r.json();
+}
+
+/* ---------------- Auth ---------------- */
+
+export async function loginUser(email: string, senha: string): Promise<AuthResponse> {
+  const r = await fetch(`${BASE}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, senha }),
+  });
+
+  if (!r.ok) {
+    // Tenta ler a mensagem de erro do backend se houver
+    let msg = `Falha no login: ${r.status}`;
+    try {
+      const errorData = await r.json();
+      if (errorData.detail) msg = errorData.detail;
+    } catch {}
+    throw new Error(msg);
+  }
+  
+  return r.json();
+}
+
+export async function registerUser(nome: string, email: string, senha: string): Promise<Usuario> {
+  const r = await fetch(`${BASE}/usuarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nome, email, senha }),
+  });
+
+  if (!r.ok) {
+    let msg = `Falha no cadastro: ${r.status}`;
+    try {
+      const errorData = await r.json();
+      if (errorData.detail) msg = errorData.detail;
+    } catch {}
+    throw new Error(msg);
+  }
+
   return r.json();
 }
