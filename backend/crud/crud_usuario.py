@@ -140,3 +140,66 @@ def obter_estatisticas_usuario(user_id):
         stats['likes'] = cur.fetchone()[0]
         
     return stats
+
+# --- FUNÇÕES DE CURTIDA ---
+
+def verificar_curtida(usuario_id, musica_nome):
+    """Retorna True se o usuário já curtiu a música."""
+    with get_connection() as con:
+        cur = con.cursor()
+        cur.execute(
+            "SELECT 1 FROM Curtida WHERE usuario_id=? AND musica_nome=?", 
+            (usuario_id, musica_nome)
+        )
+        return cur.fetchone() is not None
+
+def alternar_curtida(usuario_id, musica_nome):
+    """
+    Se já curtiu, remove (dislike).
+    Se não curtiu, adiciona (like).
+    Retorna True se ficou curtido, False se foi removido.
+    """
+    liked = verificar_curtida(usuario_id, musica_nome)
+    
+    with get_connection() as con:
+        cur = con.cursor()
+        if liked:
+            cur.execute(
+                "DELETE FROM Curtida WHERE usuario_id=? AND musica_nome=?", 
+                (usuario_id, musica_nome)
+            )
+            con.commit()
+            return False 
+        else:
+            cur.execute(
+                "INSERT INTO Curtida(usuario_id, musica_nome) VALUES(?,?)", 
+                (usuario_id, musica_nome)
+            )
+            con.commit()
+            return True 
+    
+def listar_musicas_curtidas(usuario_id):
+    """
+    Retorna a lista de músicas curtidas, buscando a nota (review) 
+    pelo NOME da música.
+    """
+    with get_connection() as con:
+        cur = con.cursor()
+        
+        query = """
+            SELECT 
+                m.id, 
+                m.nome, 
+                m.artista, 
+                m.album, 
+                m.data_lancamento, 
+                m.url_imagem,
+                r.nota  
+            FROM Musica m
+            JOIN Curtida c ON m.nome = c.musica_nome
+            LEFT JOIN Review r ON m.nome = r.musica AND r.usuario_id = c.usuario_id
+            WHERE c.usuario_id = ?
+            ORDER BY m.id DESC
+        """
+        cur.execute(query, (usuario_id,))
+        return cur.fetchall()

@@ -43,6 +43,9 @@ from crud.crud_usuario import (
     obter_estatisticas_usuario,
     hash_password,
     verify_password,
+    verificar_curtida,
+    alternar_curtida,
+    listar_musicas_curtidas
 )
 
 from crud.crud_album import criarTabelaAlbum
@@ -91,6 +94,15 @@ class MusicaIn(BaseModel):
 class MusicaOut(MusicaIn):
     id: int
 
+class MusicaProfileOut(BaseModel):
+    id: int
+    nome: str
+    artista: str
+    album: Optional[str] = None
+    data_lancamento: Optional[str] = None
+    url_imagem: Optional[str] = None
+    user_rating: Optional[float] = None
+    
 def rows_to_musicas(rows: List[Tuple]) -> List[MusicaOut]:
     return [
         MusicaOut(
@@ -406,3 +418,49 @@ def atualizar_meu_perfil(
     atualizar_perfil(user_id, data.nome, data.biografia, data.url_foto, data.url_capa, data.localizacao)
         
     return ler_meu_perfil(current_user)
+
+# ----------------------------- Favoritas -----------------------------
+
+@app.get("/musicas/{id}/like")
+def get_like_status(id: int, current_user: tuple = Depends(get_current_user)):
+    """Verifica se o usuário logado curtiu a música."""
+    m = get_musica(id)
+    user_id = current_user[0]
+    
+    is_liked = verificar_curtida(user_id, m.nome)
+    return {"is_liked": is_liked}
+
+@app.post("/musicas/{id}/like")
+def toggle_like(id: int, current_user: tuple = Depends(get_current_user)):
+    """Dá like ou remove like."""
+    m = get_musica(id)
+    user_id = current_user[0]
+    
+    novo_estado = alternar_curtida(user_id, m.nome)
+    return {"is_liked": novo_estado}
+
+@app.get("/usuarios/me/curtidas", response_model=List[MusicaProfileOut])
+def get_my_likes(current_user: tuple = Depends(get_current_user)):
+    """Retorna a lista de músicas favoritas do usuário com a nota pessoal."""
+    try:
+        user_id = current_user[0]
+        rows = listar_musicas_curtidas(user_id)
+        
+        lista_formatada = []
+        for row in rows:
+            musica = {
+                "id": row[0],
+                "nome": row[1],
+                "artista": row[2],
+                "album": row[3] if row[3] else "Single",
+                "data_lancamento": row[4] if row[4] else "",
+                "url_imagem": row[5] if row[5] else "",
+                "user_rating": row[6] if row[6] is not None else 0
+            }
+            lista_formatada.append(musica)
+            
+        return lista_formatada
+
+    except Exception as e:
+        print(f"ERRO NO BACKEND: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -8,6 +8,7 @@ export type Musica = {
   album: string;
   data_lancamento: string;
   url_imagem: string;
+  user_rating?: number;
 };
 
 export type GeniusResult = {
@@ -179,7 +180,6 @@ export async function loginUser(email: string, senha: string): Promise<AuthRespo
   });
 
   if (!r.ok) {
-    // Tenta ler a mensagem de erro do backend se houver
     let msg = `Falha no login: ${r.status}`;
     try {
       const errorData = await r.json();
@@ -232,5 +232,42 @@ export async function updateMyProfile(data: UsuarioUpdateBody): Promise<UsuarioF
     body: JSON.stringify(data),
   });
   if (!r.ok) throw new Error("Erro ao atualizar perfil");
+  return r.json();
+}
+
+// --- CURTIDAS ---
+
+export async function getLikeStatus(musicaId: number | string): Promise<boolean> {
+  const token = localStorage.getItem('hitnote_token');
+  if (!token) return false; // Se não tá logado, não tá curtido
+
+  const r = await fetch(`${BASE}/musicas/${musicaId}/like`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!r.ok) return false;
+  const data = await r.json();
+  return data.is_liked;
+}
+
+export async function toggleLike(musicaId: number | string): Promise<boolean> {
+  const token = localStorage.getItem('hitnote_token');
+  if (!token) throw new Error("Faça login para curtir.");
+
+  const r = await fetch(`${BASE}/musicas/${musicaId}/like`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  
+  if (!r.ok) throw new Error("Erro ao curtir.");
+  const data = await r.json();
+  return data.is_liked; 
+}
+
+export async function getMyLikes(): Promise<Musica[]> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/usuarios/me/curtidas`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error("Erro ao carregar favoritas.");
   return r.json();
 }

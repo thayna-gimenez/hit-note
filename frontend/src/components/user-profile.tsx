@@ -13,38 +13,15 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 // Integração com API e Contexto
 import { useAuth } from "../contexts/AuthContext";
-import { getMyProfile, updateMyProfile, type UsuarioFull } from "../lib/api";
+import { 
+  getMyProfile, 
+  updateMyProfile, 
+  getMyLikes, 
+  type UsuarioFull, 
+  type Musica 
+} from "../lib/api";
 
-// --- DADOS MOCKADOS (Mantidos para as abas funcionarem visualmente) ---
-const favoriteMusics = [
-  {
-    id: "fav1",
-    title: "Bohemian Rhapsody",
-    artist: "Queen",
-    album: "A Night at the Opera",
-    year: 1975,
-    coverImage: "https://images.unsplash.com/photo-1629923759854-156b88c433aa?q=80&w=1080",
-    rating: 4.8,
-    userRating: 5,
-    genre: "Rock",
-    duration: "5:55",
-    isLiked: true
-  },
-  {
-    id: "fav2",
-    title: "Paranoid Android",
-    artist: "Radiohead",
-    album: "OK Computer",
-    year: 1997,
-    coverImage: "https://images.unsplash.com/photo-1738667181188-a63ec751a646?q=80&w=1080",
-    rating: 4.7,
-    userRating: 5,
-    genre: "Alternative",
-    duration: "6:23",
-    isLiked: true
-  }
-];
-
+// --- DADOS MOCKADOS ---
 const userLists = [
   {
     id: "list1",
@@ -91,6 +68,10 @@ export function UserProfile() {
 
   // Estados de Dados Reais
   const [profile, setProfile] = useState<UsuarioFull | null>(null);
+  
+  // Estado para as favoritas
+  const [favorites, setFavorites] = useState<Musica[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   // Estados de Edição
@@ -103,22 +84,32 @@ export function UserProfile() {
     localizacao: ""
   });
 
-  // Carregar dados do Backend
   useEffect(() => {
     async function load() {
       try {
-        const data = await getMyProfile();
-        console.log("Dados recebidos do perfil:", data); // <--- Para debug no F12
-        setProfile(data);
+        setLoading(true);
+        
+        const [profileData, favoritesData] = await Promise.all([
+            getMyProfile(),
+            getMyLikes()
+        ]);
+
+        console.log("Perfil carregado:", profileData);
+        console.log("Favoritas carregadas:", favoritesData);
+
+        setProfile(profileData);
+        setFavorites(favoritesData);
+
         setEditForm({
-          nome: data.nome,
-          biografia: data.biografia || "",
-          url_foto: data.url_foto || "",
-          url_capa: data.url_capa || "",
-          localizacao: data.localizacao || ""
+          nome: profileData.nome,
+          biografia: profileData.biografia || "",
+          url_foto: profileData.url_foto || "",
+          url_capa: profileData.url_capa || "",
+          localizacao: profileData.localizacao || ""
         });
+
       } catch (error) {
-        console.error(error);
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -126,7 +117,6 @@ export function UserProfile() {
     if (user) load();
   }, [user]);
 
-  // Salvar Alterações
   async function handleSave() {
     try {
       const updated = await updateMyProfile(editForm);
@@ -321,7 +311,7 @@ export function UserProfile() {
         </Card>
       </div>
 
-      {/* --- ABAS (Conteúdo Visual Mockado) --- */}
+      {/* --- ABAS --- */}
       <Tabs defaultValue="favorites" className="space-y-6">
         <TabsList className="grid grid-cols-3 lg:grid-cols-4 w-full">
           <TabsTrigger value="favorites" className="flex items-center space-x-2">
@@ -342,21 +332,33 @@ export function UserProfile() {
         <TabsContent value="favorites" className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">Músicas Favoritas</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {favoriteMusics.map((music) => (
-                <MusicCard
-                  key={music.id}
-                  {...music}
-                  onPlay={() => console.log(`Playing ${music.title}`)}
-                  onLike={() => console.log(`Liked ${music.title}`)}
-                  onRate={(rating) => console.log(`Rated ${music.title}: ${rating} stars`)}
-                />
-              ))}
-            </div>
+            
+            {favorites.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg bg-zinc-900/50 border-dashed border-zinc-700">
+                    <Heart className="h-12 w-12 mx-auto text-zinc-600 mb-3" />
+                    <p className="text-muted-foreground">Você ainda não curtiu nenhuma música.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {favorites.map((music) => (
+                    <MusicCard
+                        key={music.id}
+                        id={music.id}
+                        title={music.nome}
+                        artist={music.artista}
+                        album={music.album}
+                        coverImage={music.url_imagem}
+                        // year={music.data_lancamento ? parseInt(music.data_lancamento.split('-')[0]) : undefined}
+                        userRating={music.user_rating} 
+                        rating={0}
+                    />
+                ))}
+                </div>
+            )}
           </div>
         </TabsContent>
 
-        {/* Conteúdo da Aba Listas */}
+        {/* Conteúdo da Aba Listas (MOCKADO) */}
         <TabsContent value="lists" className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -397,7 +399,7 @@ export function UserProfile() {
           </div>
         </TabsContent>
 
-        {/* Conteúdo da Aba Atividade */}
+        {/* Conteúdo da Aba Atividade (MOCKADO) */}
         <TabsContent value="activity" className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">Atividade Recente</h2>

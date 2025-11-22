@@ -1,9 +1,14 @@
-import { TrendingUp, Clock, Heart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { TrendingUp, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { HeroSection } from "../components/hero-section";
 import { FeaturedSection } from "../components/featured-section";
 
-// --- DADOS MOCKADOS (Movidos do App.tsx) ---
+// Contexto e API
+import { useAuth } from "../contexts/AuthContext";
+import { getMyLikes } from "../lib/api";
+
+// --- DADOS MOCKADOS ---
 const featuredMusic = {
   id: "1",
   title: "Bohemian Rhapsody",
@@ -61,78 +66,42 @@ const trendingMusics = [
   },
 ];
 
-const recentlyPlayed = [
-  {
-    id: "8",
-    title: "Bad Guy",
-    artist: "Billie Eilish",
-    album: "WHEN WE ALL FALL ASLEEP, WHERE DO WE GO?",
-    year: 2019,
-    coverImage:
-      "https://images.unsplash.com/photo-1598488035252-042a85bc8e5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.3,
-    userRating: 5,
-    genre: "Alternative",
-    duration: "3:14",
-    isLiked: true,
-  },
-  {
-    id: "9",
-    title: "Someone Like You",
-    artist: "Adele",
-    album: "21",
-    year: 2011,
-    coverImage:
-      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.5,
-    userRating: 4,
-    genre: "Soul",
-    duration: "4:45",
-  },
-];
-
-const favoriteMusics = [
-  {
-    id: "12",
-    title: "Paranoid Android",
-    artist: "Radiohead",
-    album: "OK Computer",
-    year: 1997,
-    coverImage:
-      "https://images.unsplash.com/photo-1738667181188-a63ec751a646?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.7,
-    userRating: 5,
-    genre: "Alternative",
-    duration: "6:23",
-    isLiked: true,
-  },
-  {
-    id: "13",
-    title: "Smells Like Teen Spirit",
-    artist: "Nirvana",
-    album: "Nevermind",
-    year: 1991,
-    coverImage:
-      "https://images.unsplash.com/photo-1629923759854-156b88c433aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-    rating: 4.5,
-    userRating: 5,
-    genre: "Grunge",
-    duration: "5:01",
-    isLiked: true,
-  },
-];
-
 export function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Função para navegar para a página de detalhes usando a URL
-  const handleMusicClick = (musicId: string) => {
+  const [favorites, setFavorites] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Só busca se tiver usuário logado
+    if (user) {
+      getMyLikes()
+        .then((data) => {
+          const mappedFavorites = data.map((music) => ({
+            id: String(music.id), 
+            title: music.nome,
+            artist: music.artista,
+            album: music.album,
+            coverImage: music.url_imagem || "",
+            rating: 0, 
+            userRating: music.user_rating, 
+          }));
+          
+          setFavorites(mappedFavorites);
+        })
+        .catch((err) => console.error("Erro ao carregar favoritas na Home:", err));
+    } else {
+      setFavorites([]); 
+    }
+  }, [user]);
+
+  const handleMusicClick = (musicId: string | number) => {
     navigate(`/musicas/${musicId}`);
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 space-y-12">
-      {/* Hero Section provavelmente tem botão de ouvir agora ou ver detalhes */}
+    <main className="container mx-auto px-4 py-8 space-y-12 pb-24">
+      {/* Hero Section */}
       <HeroSection featuredMusic={featuredMusic} />
 
       <FeaturedSection
@@ -144,23 +113,17 @@ export function Home() {
         onMusicClick={handleMusicClick}
       />
 
-      <FeaturedSection
-        title="Tocadas Recentemente"
-        subtitle="Continue de onde parou"
-        icon={<Clock className="h-6 w-6 text-blue-500" />}
-        musics={recentlyPlayed}
-        showMore
-        onMusicClick={handleMusicClick}
-      />
-
-      <FeaturedSection
-        title="Suas Favoritas"
-        subtitle="Músicas que você mais ama"
-        icon={<Heart className="h-6 w-6 text-red-500" />}
-        musics={favoriteMusics}
-        showMore
-        onMusicClick={handleMusicClick}
-      />
+      {/* Renderiza Favoritas APENAS se estiver logado e tiver músicas */}
+      {user && favorites.length > 0 && (
+        <FeaturedSection
+          title={`Favoritas de ${user.nome}`}
+          subtitle="Músicas que você curtiu"
+          icon={<Heart className="h-6 w-6 text-red-500" />}
+          musics={favorites}
+          showMore={false} 
+          onMusicClick={handleMusicClick}
+        />
+      )}
     </main>
   );
 }
