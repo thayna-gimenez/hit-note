@@ -121,25 +121,37 @@ def atualizar_perfil(id, nome, biografia, url_foto, url_capa, localizacao):
 
 def obter_estatisticas_usuario(user_id):
     """Calcula: Total Reviews, Média Nota, Seguidores, Curtidas."""
-    stats = {}
     with get_connection() as con:
         cur = con.cursor()
         
-        # 1. Total de Avaliações e Média
-        cur.execute("SELECT COUNT(*), AVG(nota) FROM Review WHERE usuario_id=?", (user_id,))
-        total_reviews, media_reviews = cur.fetchone()
-        stats['total_reviews'] = total_reviews or 0
-        stats['media_reviews'] = media_reviews or 0.0
-
-        # 2. Total de Seguidores (quantas pessoas seguem esse user_id)
-        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguido_id=?", (user_id,))
-        stats['followers'] = cur.fetchone()[0]
-
-        # 3. Total de Curtidas (quantas músicas esse usuário curtiu)
-        cur.execute("SELECT COUNT(*) FROM Curtida WHERE usuario_id=?", (user_id,))
-        stats['likes'] = cur.fetchone()[0]
+        # 1. Total Reviews
+        cur.execute("SELECT COUNT(*) FROM Review WHERE usuario_id=?", (user_id,))
+        total_reviews = cur.fetchone()[0]
         
-    return stats
+        # 2. Média Reviews
+        cur.execute("SELECT AVG(nota) FROM Review WHERE usuario_id=?", (user_id,))
+        res_media = cur.fetchone()[0]
+        media_reviews = res_media if res_media else 0.0
+        
+        # 3. Seguidores (Quem segue o usuário)
+        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguido_id=?", (user_id,))
+        followers = cur.fetchone()[0]
+        
+        # 4. Seguindo (Quem o usuário segue) 
+        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguidor_id=?", (user_id,))
+        following = cur.fetchone()[0]
+        
+        # 5. Likes (Músicas curtidas)
+        cur.execute("SELECT COUNT(*) FROM Curtida WHERE usuario_id=?", (user_id,))
+        likes = cur.fetchone()[0]
+
+        return {
+            "total_reviews": total_reviews,
+            "media_reviews": media_reviews,
+            "followers": followers,
+            "following": following,
+            "likes": likes
+        }
 
 # --- FUNÇÕES DE CURTIDA ---
 
@@ -203,3 +215,86 @@ def listar_musicas_curtidas(usuario_id):
         """
         cur.execute(query, (usuario_id,))
         return cur.fetchall()
+    
+# --- FUNÇÕES DE BUSCA E SOCIAL ---
+
+def pesquisar_usuarios(termo):
+    """Busca usuários por nome ou email (parcial)."""
+    with get_connection() as con:
+        cur = con.cursor()
+        termo_like = f"%{termo}%"
+        cur.execute("""
+            SELECT id, nome, url_foto, biografia 
+            FROM Usuario 
+            WHERE nome LIKE ? OR email LIKE ?
+            LIMIT 20
+        """, (termo_like, termo_like))
+        return cur.fetchall()
+
+def verificar_seguindo(seguidor_id, seguido_id):
+    """Retorna True se seguidor_id já segue seguido_id."""
+    with get_connection() as con:
+        cur = con.cursor()
+        cur.execute(
+            "SELECT 1 FROM Seguidores WHERE seguidor_id=? AND seguido_id=?", 
+            (seguidor_id, seguido_id)
+        )
+        return cur.fetchone() is not None
+
+def alternar_seguir(seguidor_id, seguido_id):
+    """
+    Se já segue, remove (unfollow).
+    Se não segue, adiciona (follow).
+    Retorna True se agora está seguindo, False se deixou de seguir.
+    """
+    if seguidor_id == seguido_id:
+        raise ValueError("Você não pode seguir a si mesmo.")
+
+    segue = verificar_seguindo(seguidor_id, seguido_id)
+    
+    with get_connection() as con:
+        cur = con.cursor()
+        if segue:
+            # Unfollow
+            cur.execute(
+                "DELETE FROM Seguidores WHERE seguidor_id=? AND seguido_id=?", 
+                (seguidor_id, seguido_id)
+            )
+            estado_atual = False
+        else:
+            # Follow
+            cur.execute(
+                "INSERT INTO Seguidores(seguidor_id, seguido_id) VALUES(?,?)", 
+                (seguidor_id, seguido_id)
+            )
+            estado_atual = True
+        con.commit()
+    
+    return estado_atual
+
+def obter_perfil_publico(user_id):
+    """
+    Retorna dados básicos de um usuário pelo ID.
+    Usado quando visitamos o perfil de outra pessoa.
+    """
+    with get_connection() as con:
+        cur = con.cursor()
+        cur.execute("SELECT id, nome, email, biografia, url_foto, url_capa, localizacao, data_cadastro FROM Usuario WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+            
+        columns = [column[0] for column in cur.description]
+        user_dict = dict(zip(columns, row))
+        
+        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguido_id=?", (user_id,))
+        followers = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM Seguidores WHERE seguidor_id=?", (user_id,))
+        following = cur.fetchone()[0]
+        
+        user_dict['stats'] = {
+            'followers': followers,
+            'following': following
+        }
+        return user_dict

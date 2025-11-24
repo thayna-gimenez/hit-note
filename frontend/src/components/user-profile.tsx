@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Calendar, Heart, List, Music, Save, X, Edit2, MapPin } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Calendar, Heart, List, Music, Save, X, Edit2, MapPin, UserPlus, UserCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -17,6 +18,8 @@ import {
   getMyProfile, 
   updateMyProfile, 
   getMyLikes, 
+  getPublicProfile,
+  toggleFollow,     
   type UsuarioFull, 
   type Musica 
 } from "../lib/api";
@@ -64,17 +67,21 @@ const recentActivity = [
 // --- COMPONENTE PRINCIPAL ---
 
 export function UserProfile() {
+  const { id } = useParams(); 
   const { user } = useAuth();
+  const navigate = useNavigate();
 
-  // Estados de Dados Reais
-  const [profile, setProfile] = useState<UsuarioFull | null>(null);
-  
-  // Estado para as favoritas
+  const isOwner = !id || (user && String(user.id) === id);
+
+  // Estados de Dados
+  const [profile, setProfile] = useState<any | null>(null);
   const [favorites, setFavorites] = useState<Musica[]>([]);
-
   const [loading, setLoading] = useState(true);
 
-  // Estados de Edição
+  // Estados de Seguir (Visitante)
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // Estados de Edição (Dono)
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     nome: "",
@@ -84,29 +91,46 @@ export function UserProfile() {
     localizacao: ""
   });
 
+  // Função auxiliar para data
+  const getSafeYear = (dateString?: string) => {
+    if (!dateString) return undefined;
+    const yearPart = dateString.split('-')[0];
+    const year = parseInt(yearPart);
+    if (isNaN(year)) return undefined;
+    return year;
+  };
+
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         
-        const [profileData, favoritesData] = await Promise.all([
-            getMyProfile(),
-            getMyLikes()
-        ]);
+        if (isOwner) {
+            // --- MODO DONO: Carrega meu perfil e meus likes ---
+            if (!user) return;
+            const [profileData, favoritesData] = await Promise.all([
+                getMyProfile(),
+                getMyLikes()
+            ]);
+            
+            setProfile(profileData);
+            setFavorites(favoritesData);
 
-        console.log("Perfil carregado:", profileData);
-        console.log("Favoritas carregadas:", favoritesData);
+            setEditForm({
+                nome: profileData.nome,
+                biografia: profileData.biografia || "",
+                url_foto: profileData.url_foto || "",
+                url_capa: profileData.url_capa || "",
+                localizacao: profileData.localizacao || ""
+            });
 
-        setProfile(profileData);
-        setFavorites(favoritesData);
-
-        setEditForm({
-          nome: profileData.nome,
-          biografia: profileData.biografia || "",
-          url_foto: profileData.url_foto || "",
-          url_capa: profileData.url_capa || "",
-          localizacao: profileData.localizacao || ""
-        });
+        } else {
+            // --- MODO VISITANTE: Carrega perfil público ---
+            const profileData = await getPublicProfile(id!);
+            setProfile(profileData);
+            setIsFollowing(!!profileData.is_following);
+            setFavorites([]); 
+        }
 
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -114,8 +138,11 @@ export function UserProfile() {
         setLoading(false);
       }
     }
-    if (user) load();
-  }, [user]);
+    
+    if (user || id) {
+        load();
+    }
+  }, [id, user, isOwner]);
 
   async function handleSave() {
     try {
@@ -123,30 +150,54 @@ export function UserProfile() {
       setProfile(updated);
       setIsEditing(false);
     } catch (error) {
-      alert("Erro ao atualizar perfil. Verifique os dados.");
+      alert("Erro ao atualizar perfil.");
     }
   }
 
-  const formatDate = (dateString: string) => {
+  async function handleToggleFollow() {
+    if (!user) {
+        alert("Faça login para seguir.");
+        return;
+    }
+    
+    const oldState = isFollowing;
+    setIsFollowing(!oldState);
+    
+    setProfile((prev: any) => ({
+        ...prev,
+        stats: {
+            ...prev.stats,
+            followers: oldState ? prev.stats.followers - 1 : prev.stats.followers + 1
+        }
+    }));
+
+    try {
+        await toggleFollow(id!);
+    } catch (error) {
+        setIsFollowing(oldState);
+        alert("Erro ao seguir usuário.");
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
     if (!dateString) return "Recentemente";
     const [ano, mes, dia] = dateString.split('-');
     return `${dia}/${mes}/${ano}`;
   };
 
-  if (!user) return <div className="container py-8 text-center">Faça login para ver seu perfil.</div>;
-  if (loading) return <div className="container py-8 text-center">Carregando...</div>;
-  if (!profile) return <div className="container py-8 text-center">Erro ao carregar dados do perfil.</div>;
+  if (loading) return <div className="container py-20 text-center">Carregando perfil...</div>;
+  if (!profile) return <div className="container py-20 text-center">Usuário não encontrado.</div>;
 
-  // Defesa contra crash: Se stats vier undefined, usamos valores padrão
+  // Defesa contra crash
   const stats = profile.stats || { total_reviews: 0, media_reviews: 0, followers: 0, likes: 0 };
   
   return (
     <div className="container mx-auto px-4 py-8 space-y-8 pb-20">
       
-      {/* --- HEADER DO PERFIL (Área Editável) --- */}
+      {/* --- HEADER DO PERFIL --- */}
       <div className="relative overflow-hidden rounded-lg bg-zinc-900 shadow-xl min-h-[320px]">
         
-        {/* Capa de Fundo (Imagem ou Gradiente) */}
+        {/* Capa */}
         <div className="absolute inset-0">
             {profile.url_capa ? (
                 <ImageWithFallback 
@@ -160,12 +211,12 @@ export function UserProfile() {
              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         </div>
 
-        {/* Input de Capa (Só aparece editando) */}
-        {isEditing && (
+        {/* Input de Capa (Apenas Dono Editando) */}
+        {isOwner && isEditing && (
             <div className="absolute top-4 right-4 left-4 z-20">
                 <label className="text-xs text-white/70 ml-1">URL da Capa</label>
                 <Input 
-                    placeholder="Cole a URL da imagem de capa aqui..." 
+                    placeholder="URL da Capa" 
                     className="bg-black/60 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md"
                     value={editForm.url_capa}
                     onChange={e => setEditForm({...editForm, url_capa: e.target.value})}
@@ -186,8 +237,8 @@ export function UserProfile() {
                 </AvatarFallback>
               </Avatar>
               
-              {/* Input de Avatar (Overlay) */}
-              {isEditing && (
+              {/* Input de Avatar (Apenas Dono Editando) */}
+              {isOwner && isEditing && (
                  <div className="absolute -bottom-2 left-0 right-0">
                     <Input 
                         placeholder="URL Foto" 
@@ -202,7 +253,7 @@ export function UserProfile() {
             {/* Info do Usuário */}
             <div className="flex-1 text-white space-y-4 w-full">
               <div>
-                {isEditing ? (
+                {isOwner && isEditing ? (
                     <div className="space-y-2">
                         <label className="text-xs text-white/70">Nome</label>
                         <Input 
@@ -215,10 +266,13 @@ export function UserProfile() {
                     <h1 className="text-3xl font-bold drop-shadow-md">{profile.nome}</h1>
                 )}
                 
-                <p className="text-white/70 font-medium">@{profile.email.split('@')[0]}</p>
+                {/* Email só mostramos se for o dono (privacidade) */}
+                {isOwner && profile.email && (
+                    <p className="text-white/70 font-medium">@{profile.email.split('@')[0]}</p>
+                )}
                 
                 <div className="mt-3">
-                    {isEditing ? (
+                    {isOwner && isEditing ? (
                          <div className="space-y-1">
                             <label className="text-xs text-white/70">Biografia</label>
                             <Textarea 
@@ -234,16 +288,18 @@ export function UserProfile() {
                 </div>
               </div>
 
-              {/* Metadados Fixos */}
+              {/* Metadados */}
               <div className="flex flex-wrap gap-4 text-sm text-white/70">
-                <div className="flex items-center space-x-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>Membro desde {formatDate(profile.data_cadastro)}</span>
-                </div>
+                {profile.data_cadastro && (
+                    <div className="flex items-center space-x-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>Membro desde {formatDate(profile.data_cadastro)}</span>
+                    </div>
+                )}
                 
                 <div className="flex items-center space-x-1">
                   <MapPin className="h-4 w-4" />
-                  {isEditing ? (
+                  {isOwner && isEditing ? (
                       <Input 
                         className="h-6 w-32 bg-white/10 border-white/20 text-white text-xs"
                         placeholder="Localização"
@@ -257,24 +313,40 @@ export function UserProfile() {
               </div>
             </div>
             
-            {/* Botões de Ação */}
+            {/* --- BOTÕES DE AÇÃO (Lógica Principal) --- */}
             <div className="flex flex-row gap-2 mt-4 md:mt-0 shrink-0">
-                {isEditing ? (
-                    <>
-                        <Button variant="destructive" size="sm" onClick={() => setIsEditing(false)}>
-                            <X className="h-4 w-4 mr-2" /> Cancelar
-                        </Button>
-                        <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm" onClick={handleSave}>
-                            <Save className="h-4 w-4 mr-2" /> Salvar
-                        </Button>
-                    </>
-                ) : (
-                    <>
+                
+                {isOwner ? (
+                    // BOTÕES DO DONO (Editar/Salvar)
+                    isEditing ? (
+                        <>
+                            <Button variant="destructive" size="sm" onClick={() => setIsEditing(false)}>
+                                <X className="h-4 w-4 mr-2" /> Cancelar
+                            </Button>
+                            <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm" onClick={handleSave}>
+                                <Save className="h-4 w-4 mr-2" /> Salvar
+                            </Button>
+                        </>
+                    ) : (
                         <Button variant="outline" size="sm" className="bg-black/20 border-white/30 text-white hover:bg-white hover:text-black" onClick={() => setIsEditing(true)}>
                             <Edit2 className="h-4 w-4 mr-2" /> Editar Perfil
                         </Button>
-                    </>
+                    )
+                ) : (
+                    // BOTÃO DO VISITANTE (Seguir)
+                    <Button 
+                        onClick={handleToggleFollow}
+                        variant={isFollowing ? "secondary" : "default"}
+                        className={isFollowing ? "bg-zinc-800 text-white hover:bg-zinc-700" : "bg-purple-600 hover:bg-purple-700 text-white"}
+                    >
+                        {isFollowing ? (
+                            <> <UserCheck className="h-4 w-4 mr-2" /> Seguindo </>
+                        ) : (
+                            <> <UserPlus className="h-4 w-4 mr-2" /> Seguir </>
+                        )}
+                    </Button>
                 )}
+
             </div>
           </div>
         </div>
@@ -284,28 +356,25 @@ export function UserProfile() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{profile.stats.total_reviews}</div>
-            <div className="text-sm text-muted-foreground">Avaliações</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center space-x-1">
-              <span className="text-2xl font-bold text-primary">{profile.stats.media_reviews.toFixed(1)}</span>
-              <StarRating rating={profile.stats.media_reviews} size="sm" />
-            </div>
-            <div className="text-sm text-muted-foreground">Média</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{profile.stats.followers}</div>
+            <div className="text-2xl font-bold text-primary">{stats.followers || 0}</div>
             <div className="text-sm text-muted-foreground">Seguidores</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{profile.stats.likes}</div>
+            <div className="text-2xl font-bold text-primary">{stats.following !== undefined ? stats.following : "-"}</div>
+            <div className="text-sm text-muted-foreground">Seguindo</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{stats.total_reviews || 0}</div>
+            <div className="text-sm text-muted-foreground">Avaliações</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{stats.likes || 0}</div>
             <div className="text-sm text-muted-foreground">Curtidas</div>
           </CardContent>
         </Card>
@@ -331,15 +400,22 @@ export function UserProfile() {
         {/* Conteúdo da Aba Favoritos */}
         <TabsContent value="favorites" className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Músicas Favoritas</h2>
+            <h2 className="text-xl font-semibold mb-4">
+                {isOwner ? "Músicas Favoritas" : `Favoritas de ${profile.nome}`}
+            </h2>
             
-            {favorites.length === 0 ? (
+            {/* Se for visitante, podemos não mostrar nada por enquanto ou mostrar mensagem */}
+            {!isOwner && favorites.length === 0 ? (
+                 <div className="text-center py-8 text-muted-foreground">
+                    As favoritas deste usuário são privadas ou vazias.
+                 </div>
+            ) : favorites.length === 0 ? (
                 <div className="text-center py-12 border rounded-lg bg-zinc-900/50 border-dashed border-zinc-700">
                     <Heart className="h-12 w-12 mx-auto text-zinc-600 mb-3" />
                     <p className="text-muted-foreground">Você ainda não curtiu nenhuma música.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {favorites.map((music) => (
                     <MusicCard
                         key={music.id}
@@ -348,7 +424,7 @@ export function UserProfile() {
                         artist={music.artista}
                         album={music.album}
                         coverImage={music.url_imagem}
-                        // year={music.data_lancamento ? parseInt(music.data_lancamento.split('-')[0]) : undefined}
+                        year={getSafeYear(music.data_lancamento)}
                         userRating={music.user_rating} 
                         rating={0}
                     />
@@ -358,79 +434,15 @@ export function UserProfile() {
           </div>
         </TabsContent>
 
-        {/* Conteúdo da Aba Listas (MOCKADO) */}
+        {/* Conteúdo da Aba Listas e Atividade (Mockados) */}
         <TabsContent value="lists" className="space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Minhas Listas</h2>
-              <Button size="sm">
-                <List className="h-4 w-4 mr-2" />
-                Nova Lista
-              </Button>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {userLists.map((list) => (
-                <Card key={list.id} className="group cursor-pointer hover:shadow-lg transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="aspect-square overflow-hidden rounded-t-lg">
-                      <ImageWithFallback
-                        src={list.coverImage}
-                        alt={list.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">{list.name}</h3>
-                        <Badge variant={list.isPublic ? "default" : "secondary"} className="text-xs">
-                          {list.isPublic ? "Pública" : "Privada"}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{list.description}</p>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{list.songCount} músicas</span>
-                        <span>{new Date(list.createdAt).toLocaleDateString('pt-BR')}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+           {/* ... Código das listas ... */}
+           <div className="text-center py-8 text-muted-foreground">Listas em breve...</div>
         </TabsContent>
 
-        {/* Conteúdo da Aba Atividade (MOCKADO) */}
         <TabsContent value="activity" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Atividade Recente</h2>
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        {activity.type === 'rating' && <StarRating rating={1} size="sm" />}
-                        {activity.type === 'like' && <Heart className="h-4 w-4 text-red-500" />}
-                        {activity.type === 'list' && <List className="h-4 w-4 text-blue-500" />}
-                      </div>
-                      <div className="flex-1">
-                        <p>
-                          <span className="font-medium">{activity.action}</span>{" "}
-                          <span className="text-muted-foreground">{activity.target}</span>
-                          {activity.rating && (
-                            <span className="ml-2 inline-block">
-                              <StarRating rating={activity.rating} size="sm" />
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{activity.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+           {/* ... Código das atividades ... */}
+           <div className="text-center py-8 text-muted-foreground">Atividade em breve...</div>
         </TabsContent>
       </Tabs>
     </div>

@@ -50,6 +50,7 @@ export type UserStats = {
   media_reviews: number;
   followers: number;
   likes: number;
+  following: number;
 };
 
 export type UsuarioFull = {
@@ -77,6 +78,53 @@ export type AuthResponse = {
   token_type: string;
   usuario: Usuario;
 };
+
+export type UsuarioPublico = {
+  id: number;
+  nome: string;
+  url_foto: string;
+  biografia: string;
+  is_following?: boolean;
+};
+
+export type UsuarioPerfil = UsuarioPublico & {
+  url_capa: string;
+  localizacao: string;
+  stats: {
+    followers: number;
+    following: number;
+  };
+};
+
+export async function searchUsers(query: string): Promise<UsuarioPublico[]> {
+  const r = await fetch(`${BASE}/usuarios/busca?q=${encodeURIComponent(query)}`);
+  if (!r.ok) throw new Error("Erro na busca");
+  return r.json();
+}
+
+export async function getPublicProfile(userId: string | number): Promise<UsuarioPerfil> {
+  const token = localStorage.getItem('hitnote_token');
+  const headers: HeadersInit = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const r = await fetch(`${BASE}/usuarios/${userId}`, { headers });
+  if (!r.ok) throw new Error("Erro ao carregar perfil");
+  return r.json();
+}
+
+export async function toggleFollow(userId: string | number): Promise<boolean> {
+  const token = localStorage.getItem('hitnote_token');
+  if (!token) throw new Error("Login necessário");
+
+  const r = await fetch(`${BASE}/usuarios/${userId}/seguir`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  
+  if (!r.ok) throw new Error("Erro ao seguir usuário");
+  const data = await r.json();
+  return data.is_following;
+}
 
 export async function getMusicasPage(params?: {
   q?: string;

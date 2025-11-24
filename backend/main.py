@@ -45,7 +45,11 @@ from crud.crud_usuario import (
     verify_password,
     verificar_curtida,
     alternar_curtida,
-    listar_musicas_curtidas
+    listar_musicas_curtidas,
+    pesquisar_usuarios,
+    obter_perfil_publico,
+    verificar_seguindo,
+    alternar_seguir
 )
 
 from crud.crud_album import criarTabelaAlbum
@@ -283,6 +287,7 @@ class UsuarioStats(BaseModel):
     total_reviews: int
     media_reviews: float
     followers: int
+    following: int
     likes: int
 class UsuarioIn(BaseModel):
     nome: str
@@ -304,6 +309,19 @@ class UsuarioProfileOut(BaseModel):
     localizacao: Optional[str] = ""
     data_cadastro: Optional[str] = ""
     stats: UsuarioStats
+    
+class UsuarioPublico(BaseModel):
+    id: int
+    nome: str
+    url_foto: Optional[str] = None
+    biografia: Optional[str] = None
+    is_following: Optional[bool] = False  
+
+class UsuarioPerfilFull(UsuarioPublico):
+    url_capa: Optional[str] = None
+    localizacao: Optional[str] = None
+    data_cadastro: Optional[str] = ""
+    stats: dict = {}  
     
 class LoginIn(BaseModel):
     """Modelo para Login."""
@@ -464,3 +482,44 @@ def get_my_likes(current_user: tuple = Depends(get_current_user)):
     except Exception as e:
         print(f"ERRO NO BACKEND: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+# --- SEGUIDORES ---
+
+@app.get("/usuarios/busca", response_model=List[UsuarioPublico])
+def search_users(q: str):
+    """Busca usuários pelo nome."""
+    rows = pesquisar_usuarios(q)
+    resultados = []
+    for row in rows:
+        resultados.append({
+            "id": row[0],
+            "nome": row[1],
+            "url_foto": row[2],
+            "biografia": row[3],
+            "is_following": False 
+        })
+    return resultados
+
+@app.get("/usuarios/{id}", response_model=UsuarioPerfilFull)
+def get_user_profile(id: int, current_user: tuple = Depends(get_current_user)):
+    """Pega o perfil de OUTRO usuário e verifica se eu sigo ele."""
+    meu_id = current_user[0]
+    
+    perfil = obter_perfil_publico(id)
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    segue = verificar_seguindo(meu_id, id)
+    perfil['is_following'] = segue
+    
+    return perfil
+
+@app.post("/usuarios/{id}/seguir")
+def toggle_follow_route(id: int, current_user: tuple = Depends(get_current_user)):
+    """Seguir / Deixar de seguir."""
+    meu_id = current_user[0]
+    try:
+        novo_estado = alternar_seguir(meu_id, id)
+        return {"is_following": novo_estado}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

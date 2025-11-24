@@ -38,15 +38,16 @@ function App() {
                 {/* Rotas de Funcionalidades */}
                 <Route path="/musicas" element={<AllMusics />} />
                 {/* :id indica que é um parâmetro dinâmico */}
-                <Route path="/musicas/:id" element={<MusicDetail />} /> 
+                <Route path="/musicas/:id" element={<MusicDetail />} />
                 <Route path="/perfil" element={<UserProfile />} />
-              
+                {/* Rota para OUTROS perfis (com ID) */}
+                <Route path="/usuarios/:id" element={<UserProfile />} />
                 {/* Rota de busca genius e adição de música */}
                 <Route path="/adicionar" element={<AddMusicPage />} />
               </Routes>
             </div>
 
-            {/* Footer (aparece em todas as telas, se preferir) */}
+            {/* Footer */}
             <footer className="border-t bg-card/50 mt-16">
               <div className="container mx-auto px-4 py-8">
                 <div className="flex items-center justify-center space-x-2 text-muted-foreground">
