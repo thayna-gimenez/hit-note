@@ -319,3 +319,9 @@ export async function getMyLikes(): Promise<Musica[]> {
   if (!r.ok) throw new Error("Erro ao carregar favoritas.");
   return r.json();
 }
+
+export async function getUserLikes(userId: number | string): Promise<Musica[]> {
+  const r = await fetch(`${BASE}/usuarios/${userId}/curtidas`);
+  if (!r.ok) throw new Error("Erro ao carregar favoritas do usuário.");
+  return r.json();
+}

@@ -483,6 +483,38 @@ def get_my_likes(current_user: tuple = Depends(get_current_user)):
         print(f"ERRO NO BACKEND: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
+# --- Adicione logo abaixo de get_my_likes ---
+
+@app.get("/usuarios/{user_id}/curtidas", response_model=List[MusicaProfileOut])
+def get_user_likes(user_id: int):
+    """
+    Retorna as músicas favoritas de QUALQUER usuário pelo ID.
+    Útil para o Perfil Público.
+    """
+    try:
+        # Reusa a mesma lógica do banco de dados que já funciona
+        rows = listar_musicas_curtidas(user_id)
+        
+        lista_formatada = []
+        for row in rows:
+            musica = {
+                "id": row[0],
+                "nome": row[1],
+                "artista": row[2],
+                "album": row[3] if row[3] else "Single",
+                "data_lancamento": row[4] if row[4] else "",
+                "url_imagem": row[5] if row[5] else "",
+                # Aqui row[6] é a nota que ESSE usuário (user_id) deu
+                "user_rating": row[6] if row[6] is not None else 0
+            }
+            lista_formatada.append(musica)
+            
+        return lista_formatada
+
+    except Exception as e:
+        print(f"ERRO NO BACKEND: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # --- SEGUIDORES ---
 
 @app.get("/usuarios/busca", response_model=List[UsuarioPublico])
