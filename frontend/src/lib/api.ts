@@ -30,11 +30,11 @@ export type MusicaPage = {
 };
 
 export async function searchGenius(query: string): Promise<GeniusResult[]> {
-  const token = localStorage.getItem('hitnote_token'); 
+  const token = localStorage.getItem('hitnote_token');
   const sp = new URLSearchParams({ query });
-  
+
   const r = await fetch(`${BASE}/api/v1/search-genius?${sp.toString()}`);
-  
+
   if (!r.ok) throw new Error("Erro ao buscar no Genius");
   return r.json();
 }
@@ -60,8 +60,8 @@ export type UsuarioFull = {
   biografia: string;
   url_foto: string;
   url_capa: string;
-  localizacao: string;  
-  data_cadastro: string; 
+  localizacao: string;
+  data_cadastro: string;
   stats: UserStats;
 };
 
@@ -120,7 +120,7 @@ export async function toggleFollow(userId: string | number): Promise<boolean> {
     method: "POST",
     headers: { "Authorization": `Bearer ${token}` }
   });
-  
+
   if (!r.ok) throw new Error("Erro ao seguir usuário");
   const data = await r.json();
   return data.is_following;
@@ -210,7 +210,7 @@ export async function createReview(
 
 export async function getRating(musicaId: number | string): Promise<{
   musica_id: number;
-  media: number | null; 
+  media: number | null;
   qtde: number;
 }> {
   const r = await fetch(`${BASE}/musicas/${musicaId}/rating`);
@@ -232,10 +232,10 @@ export async function loginUser(email: string, senha: string): Promise<AuthRespo
     try {
       const errorData = await r.json();
       if (errorData.detail) msg = errorData.detail;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
-  
+
   return r.json();
 }
 
@@ -251,7 +251,7 @@ export async function registerUser(nome: string, email: string, senha: string): 
     try {
       const errorData = await r.json();
       if (errorData.detail) msg = errorData.detail;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -273,9 +273,9 @@ export async function updateMyProfile(data: UsuarioUpdateBody): Promise<UsuarioF
   const token = localStorage.getItem('hitnote_token');
   const r = await fetch(`${BASE}/usuarios/me`, {
     method: "PUT",
-    headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` 
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(data),
   });
@@ -305,10 +305,10 @@ export async function toggleLike(musicaId: number | string): Promise<boolean> {
     method: "POST",
     headers: { "Authorization": `Bearer ${token}` }
   });
-  
+
   if (!r.ok) throw new Error("Erro ao curtir.");
   const data = await r.json();
-  return data.is_liked; 
+  return data.is_liked;
 }
 
 export async function getMyLikes(): Promise<Musica[]> {
@@ -324,4 +324,126 @@ export async function getUserLikes(userId: number | string): Promise<Musica[]> {
   const r = await fetch(`${BASE}/usuarios/${userId}/curtidas`);
   if (!r.ok) throw new Error("Erro ao carregar favoritas do usuário.");
   return r.json();
+}
+
+export type Lista = {
+  id: number;
+  nome: string;
+  descricao: string;
+  url_capa?: string;
+  publica: boolean;
+  song_count: number;
+  createdAt?: string;
+  usuario_id: number;
+};
+
+export type ListaIn = {
+  nome: string;
+  descricao: string;
+  publica: boolean;
+};
+
+export type ListaItem = {
+  id: number;
+  nome: string;
+  artista: string;
+  album: string;
+  url_imagem: string;
+  adicionado_em: string;
+};
+
+export type ListaFull = Lista & {
+  items: ListaItem[];
+};
+
+export type ListaUpdateData = {
+  nome: string;
+  descricao: string;
+  publica: boolean;
+};
+
+export async function createLista(data: ListaIn): Promise<Lista> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/listas`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Erro ao criar lista");
+  return r.json();
+}
+
+export async function getUserLists(userId: number | string): Promise<Lista[]> {
+  const token = localStorage.getItem('hitnote_token');
+  const headers: any = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const r = await fetch(`${BASE}/usuarios/${userId}/listas`, { headers });
+  if (!r.ok) throw new Error("Erro ao buscar listas");
+  return r.json();
+}
+
+export async function updateLista(listaId: number, data: ListaUpdateData): Promise<Lista> {
+    const token = localStorage.getItem('hitnote_token');
+    const r = await fetch(`${BASE}/listas/${listaId}`, {
+        method: "PUT", 
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (r.status === 403) {
+        throw new Error("Não autorizado. Você não é dono desta lista.");
+    }
+    if (!r.ok) {
+        throw new Error("Erro ao atualizar a lista.");
+    }
+    
+    return r.json(); 
+}
+
+export async function deleteLista(listaId: number): Promise<void> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/listas/${listaId}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error("Erro ao deletar lista");
+}
+
+export async function getListaDetails(listaId: number | string): Promise<ListaFull> {
+  const r = await fetch(`${BASE}/listas/${listaId}`);
+  if (!r.ok) throw new Error("Erro ao carregar lista");
+  return r.json();
+}
+
+export async function addMusicToList(listaId: number, musicaId: number): Promise<void> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/listas/${listaId}/musicas/${musicaId}`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (!r.ok) {
+    let msg = "Erro ao adicionar música";
+    try {
+      const err = await r.json();
+      if (err.detail) msg = err.detail;
+    } catch { }
+    throw new Error(msg);
+  }
+}
+
+export async function removeMusicFromList(listaId: number, musicaId: number): Promise<void> {
+  const token = localStorage.getItem('hitnote_token');
+  const r = await fetch(`${BASE}/listas/${listaId}/musicas/${musicaId}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error("Erro ao remover música");
 }

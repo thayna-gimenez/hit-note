@@ -16,6 +16,7 @@ import AllMusics from "./components/AllMusics";
 import MusicDetail from "./components/music-detail";
 import { UserProfile } from "./components/user-profile";
 import { AddMusicPage } from "./pages/AddMusicPage";
+import { ListDetail } from "./components/ListDetail"; 
 
 function App() {
   return (
@@ -44,6 +45,8 @@ function App() {
                 <Route path="/usuarios/:id" element={<UserProfile />} />
                 {/* Rota de busca genius e adição de música */}
                 <Route path="/adicionar" element={<AddMusicPage />} />
+                {/* Rota para detalhes da lista de músicas */}
+                <Route path="/listas/:listaId" element={<ListDetail />} /> 
               </Routes>
             </div>
 

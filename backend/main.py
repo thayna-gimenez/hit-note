@@ -61,6 +61,18 @@ from crud.crud_review import (
     deletarDados as review_delete
 )
 
+from crud.crud_lista import (
+    criarTabelaLista, 
+    criar_lista, 
+    listar_listas_usuario, 
+    deletar_lista,
+    obter_lista_por_id,
+    adicionar_musica_lista,
+    remover_musica_lista,
+    obter_musicas_da_lista,
+    editar_lista
+)
+
 app = FastAPI(title="HitNote API")
 
 @app.on_event("startup")
@@ -70,6 +82,7 @@ def on_startup():
     criarTabelaAlbum()
     criarTabelaReview()
     criarTabelaUsuario()
+    criarTabelaLista()
     print("Tabelas prontas.")
 
 # Libera o front local
@@ -555,3 +568,163 @@ def toggle_follow_route(id: int, current_user: tuple = Depends(get_current_user)
         return {"is_following": novo_estado}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+# --- LISTAS (PLAYLISTS) ---
+
+class ListaIn(BaseModel):
+    nome: str
+    descricao: Optional[str] = ""
+    publica: bool = True
+
+class ListaOut(BaseModel):
+    id: int
+    nome: str
+    descricao: Optional[str]
+    url_capa: Optional[str]
+    publica: bool
+    song_count: int = 0
+    usuario_id: int
+
+class ListaItemOut(BaseModel):
+    id: int
+    nome: str
+    artista: str
+    album: str
+    url_imagem: Optional[str]
+    adicionado_em: str
+
+class ListaFullOut(ListaOut):
+    items: List[ListaItemOut]
+
+@app.post("/listas", response_model=ListaOut, status_code=201)
+def create_lista_route(data: ListaIn, current_user: tuple = Depends(get_current_user)):
+    """Cria uma nova lista para o usuário logado."""
+    user_id = current_user[0]
+    new_id = criar_lista(user_id, data.nome, data.descricao, data.publica)
+    
+    return ListaOut(
+        id=new_id,
+        nome=data.nome,
+        descricao=data.descricao,
+        url_capa=None,
+        publica=data.publica,
+        song_count=0,
+        usuario_id=user_id
+    )
+
+@app.get("/usuarios/{user_id}/listas", response_model=List[ListaOut])
+def get_user_lists_route(user_id: int, current_user: Optional[Tuple[int, str]] = Depends(get_current_user)):
+    """Retorna as listas de um usuário."""
+    meu_id = current_user[0] if current_user else None
+    sou_dono = (meu_id == user_id)
+    
+    rows = listar_listas_usuario(user_id, apenas_publicas=not sou_dono)
+    
+    results = []
+    for row in rows:
+        results.append(ListaOut(
+            id=row[0],
+            nome=row[1],
+            descricao=row[2],
+            url_capa=row[3],
+            publica=bool(row[4]),
+            song_count=row[6],
+            usuario_id=user_id 
+        ))
+    return results
+
+@app.delete("/listas/{lista_id}", status_code=204)
+def delete_lista_route(lista_id: int, current_user: tuple = Depends(get_current_user)):
+    """Apaga uma lista inteira."""
+    user_id = current_user[0]
+    sucesso = deletar_lista(lista_id, user_id)
+    if not sucesso:
+        raise HTTPException(status_code=403, detail="Não permitido ou lista não encontrada.")
+    return
+
+@app.put("/listas/{lista_id}", response_model=ListaOut)
+def update_lista_route(lista_id: int, data: ListaIn, current_user: Optional[Tuple[int, str]] = Depends(get_current_user)):
+    """Atualiza o nome, descrição e privacidade de uma lista."""
+    if not current_user: 
+        raise HTTPException(status_code=401, detail="Autenticação necessária")
+    user_id = current_user[0]
+
+    sucesso = editar_lista(lista_id, user_id, data.nome, data.descricao, data.publica)
+    
+    if not sucesso:
+        lista_existente = obter_lista_por_id(lista_id)
+        if not lista_existente:
+             raise HTTPException(status_code=404, detail="Lista não encontrada.")
+        else:
+             raise HTTPException(status_code=403, detail="Você não tem permissão para editar esta lista.")
+    
+    lista_recarregada = obter_lista_por_id(lista_id)
+    
+    return ListaOut(
+        id=lista_id,
+        nome=data.nome,
+        descricao=data.descricao,
+        url_capa=lista_recarregada[3],
+        publica=data.publica,
+        song_count=0, 
+        usuario_id=user_id
+    )
+
+@app.get("/listas/{lista_id}", response_model=ListaFullOut)
+def get_lista_details(lista_id: int):
+    """Retorna os detalhes da lista e suas músicas."""
+    lista = obter_lista_por_id(lista_id)
+    if not lista:
+        raise HTTPException(status_code=404, detail="Lista não encontrada")
+    
+    musicas_raw = obter_musicas_da_lista(lista_id)
+    
+    items = []
+    for m in musicas_raw:
+        items.append({
+            "id": m[0],
+            "nome": m[1],
+            "artista": m[2],
+            "album": m[3],
+            "url_imagem": m[4],
+            "data_lancamento": m[5],
+            "adicionado_em": str(m[6])
+        })
+
+    return {
+        "id": lista[0],
+        "nome": lista[1],
+        "descricao": lista[2],
+        "url_capa": lista[3],
+        "publica": bool(lista[4]),
+        "usuario_id": lista[6], 
+        "items": items,
+        "song_count": len(items)
+    }
+
+@app.post("/listas/{lista_id}/musicas/{musica_id}", status_code=201)
+def add_music_to_list(lista_id: int, musica_id: int, current_user: tuple = Depends(get_current_user)):
+    """Adiciona uma música à lista."""
+    lista = obter_lista_por_id(lista_id)
+    if not lista:
+        raise HTTPException(404, "Lista não encontrada")
+    
+    if lista[6] != current_user[0]: 
+        raise HTTPException(403, "Você não é dono desta lista")
+
+    adicionar_musica_lista(lista_id, musica_id)
+    return {"msg": "Adicionado com sucesso"}
+
+@app.delete("/listas/{lista_id}/musicas/{musica_id}", status_code=204)
+def remove_music_from_list(lista_id: int, musica_id: int, current_user: tuple = Depends(get_current_user)):
+    """Remove uma música da lista."""
+    lista = obter_lista_por_id(lista_id)
+    
+    if not lista:
+        raise HTTPException(404, "Lista não encontrada")
+        
+    if lista[6] != current_user[0]:
+        raise HTTPException(403, "Não permitido")
+
+    remover_musica_lista(lista_id, musica_id)
+    return
