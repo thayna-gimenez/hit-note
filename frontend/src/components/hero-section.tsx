@@ -17,9 +17,10 @@ interface HeroSectionProps {
     duration: string
     description: string
   }
+  onMusicClick: (musicId: string | number) => void;
 }
 
-export function HeroSection({ featuredMusic }: HeroSectionProps) {
+export function HeroSection({ featuredMusic, onMusicClick }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900">
       {/* Background Image */}
@@ -56,9 +57,9 @@ export function HeroSection({ featuredMusic }: HeroSectionProps) {
             <div className="flex items-center space-x-4">
               <StarRating rating={featuredMusic.rating} size="lg" />
               <span className="text-lg font-medium">{featuredMusic.rating}/5</span>
-              <Badge variant="outline" className="border-white/30 text-white">
+              {/* <Badge variant="outline" className="border-white/30 text-white">
                 {featuredMusic.genre}
-              </Badge>
+              </Badge> */}
             </div>
 
             {/* Description */}
@@ -85,17 +86,20 @@ export function HeroSection({ featuredMusic }: HeroSectionProps) {
 
           {/* Album Cover */}
           <div className="flex justify-center md:justify-end">
-            <div className="relative">
-              <div className="w-80 h-80 rounded-lg overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            <div 
+              className="relative cursor-pointer group" 
+              onClick={() => onMusicClick(featuredMusic.id)} 
+            >
+              <div className="w-80 h-80 rounded-lg overflow-hidden shadow-2xl transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
                 <ImageWithFallback
                   src={featuredMusic.coverImage}
                   alt={`${featuredMusic.title} cover`}
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
+              {/* <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
                 <span className="text-sm font-medium text-black">{featuredMusic.duration}</span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
