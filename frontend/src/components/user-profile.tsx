@@ -301,7 +301,7 @@ export function UserProfile() {
                     <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm" onClick={handleSaveProfile}><Save className="h-4 w-4 mr-2" /> Salvar</Button>
                   </>
                 ) : (
-                  <Button variant="outline" size="sm" className="bg-black/20 border-white/30 text-white hover:bg-white hover:text-black" onClick={() => setIsEditing(true)}><Edit2 className="h-4 w-4 mr-2" /> Editar Perfil</Button>
+                  <Button variant="text" size="sm" className="hover:bg-white hover:text-black" onClick={() => setIsEditing(true)}><Edit2 className="h-4 w-4 mr-2" /> Editar Perfil</Button>
                 )
               ) : (
                 <Button onClick={handleToggleFollow} variant={isFollowing ? "secondary" : "default"} className={isFollowing ? "bg-zinc-800 text-white hover:bg-zinc-700" : "bg-purple-600 hover:bg-purple-700 text-white"}>
@@ -323,7 +323,7 @@ export function UserProfile() {
 
       {/* ABAS DE CONTEÚDO */}
       <Tabs defaultValue="favorites" className="space-y-6">
-        <TabsList className="grid grid-cols-3 lg:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-3 lg:grid-cols-3 w-full">
           <TabsTrigger value="favorites" className="flex items-center space-x-2"><Heart className="h-4 w-4" /><span>Favoritas</span></TabsTrigger>
           <TabsTrigger value="lists" className="flex items-center space-x-2"><List className="h-4 w-4" /><span>Listas</span></TabsTrigger>
           <TabsTrigger value="activity" className="flex items-center space-x-2"><Music className="h-4 w-4" /><span>Atividade</span></TabsTrigger>
