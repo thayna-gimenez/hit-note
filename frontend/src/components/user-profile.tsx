@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, Heart, List, Music, Save, X, Edit2, MapPin, UserPlus, UserCheck, Plus, Trash2 } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Calendar, Heart, List, Music, Save, X, Edit2, MapPin, UserPlus, UserCheck, Plus, Trash2, MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -21,12 +21,14 @@ import {
   getPublicProfile,
   toggleFollow,
   getUserLikes,
-  getUserLists, 
-  createLista,  
-  deleteLista,  
+  getUserLists,
+  createLista,
+  deleteLista,
+  getUserFeed,
   type UsuarioFull,
   type Musica,
-  type Lista
+  type Lista,
+  type ActivityItem,
 } from "../lib/api";
 
 export function UserProfile() {
@@ -40,7 +42,7 @@ export function UserProfile() {
   // --- ESTADOS ---
   const [profile, setProfile] = useState<any | null>(null);
   const [favorites, setFavorites] = useState<Musica[]>([]);
-  const [userLists, setUserLists] = useState<Lista[]>([]); 
+  const [userLists, setUserLists] = useState<Lista[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estado de "Seguindo" (apenas para visitantes)
@@ -60,6 +62,9 @@ export function UserProfile() {
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListForm, setNewListForm] = useState({ nome: "", descricao: "" });
 
+  // Estado de Atividade Recente
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+
   // Helper para extrair ano da data
   const getSafeYear = (dateString?: string) => {
     if (!dateString) return undefined;
@@ -75,20 +80,25 @@ export function UserProfile() {
       try {
         setLoading(true);
 
-        // Se for rota /perfil mas não tiver user logado, espera auth ou redireciona
         if (isOwner && !user) return;
+
+        const targetId = isOwner ? user!.id : id!;
+
+        const activityPromise = getUserFeed(targetId);
 
         if (isOwner) {
           // --- DONO: Carrega dados privados ---
-          const [profileData, favoritesData, listsData] = await Promise.all([
+          const [profileData, favoritesData, listsData, activityData] = await Promise.all([
             getMyProfile(),
             getMyLikes(),
-            getUserLists(user!.id)
+            getUserLists(user!.id),
+            activityPromise,
           ]);
 
           setProfile(profileData);
           setFavorites(favoritesData);
           setUserLists(listsData);
+          setRecentActivity(activityData);
 
           // Preenche form de edição
           setEditForm({
@@ -101,16 +111,18 @@ export function UserProfile() {
 
         } else {
           // --- VISITANTE: Carrega dados públicos ---
-          const [profileData, publicLikes, publicLists] = await Promise.all([
+          const [profileData, publicLikes, publicLists, activityData] = await Promise.all([
             getPublicProfile(id!),
             getUserLikes(id!),
-            getUserLists(id!)
+            getUserLists(id!),
+            activityPromise,
           ]);
 
           setProfile(profileData);
           setIsFollowing(!!profileData.is_following);
           setFavorites(publicLikes);
           setUserLists(publicLists);
+          setRecentActivity(activityData);
         }
 
       } catch (error) {
@@ -165,10 +177,10 @@ export function UserProfile() {
       const novaLista = await createLista({
         nome: newListForm.nome,
         descricao: newListForm.descricao,
-        publica: true 
+        publica: true
       });
 
-      setUserLists([novaLista, ...userLists]); 
+      setUserLists([novaLista, ...userLists]);
       setIsCreatingList(false);
       setNewListForm({ nome: "", descricao: "" });
     } catch (err) {
@@ -413,7 +425,61 @@ export function UserProfile() {
 
         {/* ABA: ATIVIDADE */}
         <TabsContent value="activity" className="space-y-6">
-          <div className="text-center py-8 text-muted-foreground">Atividade em breve...</div>
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Atividade Recente</h2>
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardContent className="p-6">
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {isOwner ? "Nenhuma atividade recente registrada." : `Nenhuma atividade recente para ${profile.nome}.`}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {recentActivity.map((activity) => {
+                      const icon = activity.tipo === 'review'
+                        ? <MessageCircle className="h-5 w-5 text-purple-400" />
+                        : <List className="h-5 w-5 text-blue-400" />;
+
+                      const targetLink = activity.tipo === 'review'
+                        ? `/musicas/${activity.target_id}`
+                        : `/listas/${activity.target_id}`;
+
+                      return (
+                        <Link
+                          key={activity.id}
+                          to={targetLink}
+                          className="flex items-center space-x-4 p-3 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer border border-zinc-900 hover:border-purple-600/50"
+                        >
+                          {/* Ícone de Atividade */}
+                          <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                            {icon}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="flex items-start text-base"> 
+                              <span className="font-medium truncate flex-1 min-w-0">{activity.acao}</span>                              
+                            </p>
+                            {activity.comentario && (
+                              <p className="text-sm text-muted-foreground truncate italic pt-0.5">"{activity.comentario}"</p>
+                            )}
+
+                            {activity.nota !== undefined && activity.nota !== null && (
+                                <span className="inline-block shrink-0"> 
+                                  <StarRating rating={activity.nota} size="sm" />
+                                </span>
+                              )}
+                          </div>
+                          {/* <p className="text-xs text-zinc-500 shrink-0">
+                            {activity.data_criacao.split(' ')[0]} 
+                          </p> */}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

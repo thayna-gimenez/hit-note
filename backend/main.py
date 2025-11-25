@@ -73,6 +73,8 @@ from crud.crud_lista import (
     editar_lista
 )
 
+from crud.crud_feed import obter_feed_usuario 
+
 app = FastAPI(title="HitNote API")
 
 @app.on_event("startup")
@@ -728,3 +730,19 @@ def remove_music_from_list(lista_id: int, musica_id: int, current_user: tuple = 
 
     remover_musica_lista(lista_id, musica_id)
     return
+
+# ----------------------------- Feed -------------------------------------
+class ActivityItemOut(BaseModel):
+    id: str 
+    tipo: str 
+    data_criacao: Optional[str] = None
+    acao: str 
+    target_id: int 
+    nota: Optional[int] = None
+    comentario: Optional[Optional[str]] = None
+
+@app.get("/usuarios/{user_id}/feed", response_model=List[ActivityItemOut])
+def get_user_feed_route(user_id: int):
+    """Retorna a atividade recente (reviews e listas) de um usuário."""
+    feed = obter_feed_usuario(user_id)
+    return feed

@@ -447,3 +447,22 @@ export async function removeMusicFromList(listaId: number, musicaId: number): Pr
   });
   if (!r.ok) throw new Error("Erro ao remover música");
 }
+
+export type ActivityItem = {
+    id: string; 
+    tipo: 'review' | 'list_create';
+    data_criacao?: string;
+    acao: string; 
+    target_id: number;
+    nota?: number;
+    comentario?: string;
+};
+
+export async function getUserFeed(userId: number | string): Promise<ActivityItem[]> {
+    const response = await fetch(`${BASE}/usuarios/${userId}/feed`);
+    
+    if (!response.ok) {
+        throw new Error("Erro ao buscar feed de atividades.");
+    }
+    return response.json();
+}
