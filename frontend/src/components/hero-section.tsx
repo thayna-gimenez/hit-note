@@ -70,10 +70,6 @@ export function HeroSection({ featuredMusic, onMusicClick }: HeroSectionProps) {
             {/* Action Buttons */}
             <div className="flex items-center space-x-4">
               <Button size="lg" className="bg-white text-black hover:bg-white/90">
-                <Play className="h-5 w-5 mr-2" />
-                Reproduzir
-              </Button>
-              <Button size="lg" className="bg-white text-black hover:bg-white/90">
                 <Heart className="h-5 w-5 mr-2" />
                 Favoritar
               </Button>

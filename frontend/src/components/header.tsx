@@ -42,7 +42,7 @@ export function Header() {
               </Button>
             </Link>
 
-            <Link to="/musicas">
+            {/* <Link to="/musicas">
               <Button
                 variant={isActive('/musicas') ? 'default' : 'ghost'}
                 size="sm"
@@ -51,11 +51,11 @@ export function Header() {
                 <Music className="h-4 w-4" />
                 <span>Músicas</span>
               </Button>
-            </Link>
+            </Link> */}
 
             <Link to="/adicionar">
               <Button variant="ghost" size="sm">
-                <Music className="h-4 w-4 mr-2" /> Adicionar
+                <Music className="h-4 w-4 mr-2" /> Buscar
               </Button>
             </Link>
 
