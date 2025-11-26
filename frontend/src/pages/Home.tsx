@@ -18,8 +18,8 @@ type HomeMusicItem = {
     coverImage: string;
     rating: number;
     userRating?: number;
-    genre: string;
-    duration: string; 
+    genre?: string;
+    duration?: string; 
     description: string; 
 };
 
@@ -59,8 +59,6 @@ export function Home() {
         coverImage: music.url_imagem || "https://placehold.co/1080x1080/4c348d/white?text=MÚSICA",
         rating: 0, 
         userRating: music.user_rating,
-        genre: 'Rock/Pop', 
-        duration: "—", 
         description: `Avalie e descubra mais sobre a faixa "${music.nome}" de ${music.artista} no Hit.Note.`, 
     });
 

@@ -13,8 +13,8 @@ interface HeroSectionProps {
     year: number
     coverImage: string
     rating: number
-    genre: string
-    duration: string
+    genre?: string
+    duration?: string
     description: string
   }
   onMusicClick: (musicId: string | number) => void;
@@ -69,13 +69,15 @@ export function HeroSection({ featuredMusic, onMusicClick }: HeroSectionProps) {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-4">
-              <Button size="lg" className="bg-white text-black hover:bg-white/90">
+              {/* <Button size="lg" className="bg-white text-black hover:bg-white/90">
                 <Heart className="h-5 w-5 mr-2" />
                 Favoritar
-              </Button>
-              <Button size="lg" className="bg-white text-black hover:bg-white/90">
+              </Button> */}
+              <Button size="lg" 
+              onClick={() => onMusicClick(featuredMusic.id)} 
+              className="bg-white text-black hover:bg-white/90">
                 <Plus className="h-5 w-5 mr-2" />
-                Adicionar à Lista
+                Saiba mais
               </Button>
             </div>
           </div>

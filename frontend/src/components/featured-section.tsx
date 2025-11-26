@@ -1,6 +1,8 @@
 import { TrendingUp, Clock, Heart } from "lucide-react"
 import { MusicCard } from "./music-card"
 import { Button } from "./ui/button"
+import { Link } from "react-router-dom" // Importações do Router
+import React, { useRef } from 'react';
 
 interface FeaturedSectionProps {
   title: string
@@ -23,14 +25,33 @@ interface FeaturedSectionProps {
   onMusicClick?: (musicId: string) => void
 }
 
-export function FeaturedSection({ 
-  title, 
-  subtitle, 
-  icon, 
-  musics, 
+export function FeaturedSection({
+  title,
+  subtitle,
+  icon,
+  musics,
   showMore = false,
-  onMusicClick 
+  onMusicClick
 }: FeaturedSectionProps) {
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Função para rolar o carrossel
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300; // Quantidade de pixels a rolar
+      const currentScroll = scrollContainerRef.current.scrollLeft;
+      const newScroll = direction === 'left'
+        ? currentScroll - scrollAmount
+        : currentScroll + scrollAmount;
+
+      scrollContainerRef.current.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <section className="space-y-6">
       {/* Section Header */}
@@ -45,9 +66,11 @@ export function FeaturedSection({
           )}
         </div>
         {showMore && (
-          <Button variant="outline" size="sm">
-            Ver mais
-          </Button>
+          <Link to="/musicas">
+            <Button variant="outline" size="sm">
+              Ver mais
+            </Button>
+          </Link>
         )}
       </div>
 
@@ -57,8 +80,6 @@ export function FeaturedSection({
           <MusicCard
             key={music.id}
             {...music}
-            onLike={() => console.log(`Liked ${music.title}`)}
-            onRate={(rating) => console.log(`Rated ${music.title}: ${rating} stars`)}
             onClick={() => onMusicClick?.(music.id)}
           />
         ))}
