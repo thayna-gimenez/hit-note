@@ -211,6 +211,26 @@ export function UserProfile() {
 
   const stats = profile.stats || { total_reviews: 0, media_reviews: 0, followers: 0, likes: 0, following: 0 };
 
+  const getColorIndexForList = (listName: string) => {
+    // Paleta de tons base do Tailwind que queremos usar
+    const colorTones = [
+      "red", // 0
+      "green", // 1
+      "blue", // 2
+      "yellow", // 3
+      "indigo", // 4
+      "pink", // 5
+      "purple", // 6
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < listName.length; i++) {
+      hash = listName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colorTones.length;
+    return colorTones[index];
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8 pb-20">
 
@@ -225,18 +245,18 @@ export function UserProfile() {
               className={`w-full h-full object-cover ${isEditing ? 'opacity-40 blur-sm' : 'opacity-80'}`}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900" />
+            <div className="w-full h-full bg-gradient-to-r from-purple-900 to-indigo-900" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         </div>
 
         {/* Edição da Capa */}
-        {isOwner && isEditing && (
+        {/* {isOwner && isEditing && (
           <div className="absolute top-4 right-4 left-4 z-20">
             <label className="text-xs text-white/70 ml-1">URL da Capa</label>
             <Input className="bg-black/60 border-white/20 text-white placeholder:text-white/50 backdrop-blur-md" value={editForm.url_capa} onChange={e => setEditForm({ ...editForm, url_capa: e.target.value })} />
           </div>
-        )}
+        )} */}
 
         <div className="relative z-10 p-8 pt-24 md:pt-32">
           <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
@@ -405,9 +425,14 @@ export function UserProfile() {
                         {list.url_capa ? (
                           <ImageWithFallback src={list.url_capa} alt={list.nome} className="h-full w-full object-cover" />
                         ) : (
-                          <List className="h-12 w-12 text-zinc-700" />
+                          <div className={`w-full h-full flex items-center justify-center p-4 bg-zinc-800 bg-gradient-to-br from-zinc-900 to-${getColorIndexForList(list.nome)}-700/80`}>
+                            <p className="text-xl font-bold text-center drop-shadow-lg line-clamp-2">
+                              {list.nome}
+                            </p>
+                          </div>
                         )}
                       </div>
+
                       <div className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <h3 className="font-medium truncate text-lg">{list.nome}</h3>
@@ -456,18 +481,18 @@ export function UserProfile() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="flex items-start text-base"> 
-                              <span className="font-medium truncate flex-1 min-w-0">{activity.acao}</span>                              
+                            <p className="flex items-start text-base">
+                              <span className="font-medium truncate flex-1 min-w-0">{activity.acao}</span>
                             </p>
                             {activity.comentario && (
                               <p className="text-sm text-muted-foreground truncate italic pt-0.5">"{activity.comentario}"</p>
                             )}
 
                             {activity.nota !== undefined && activity.nota !== null && (
-                                <span className="inline-block shrink-0"> 
-                                  <StarRating rating={activity.nota} size="sm" />
-                                </span>
-                              )}
+                              <span className="inline-block shrink-0">
+                                <StarRating rating={activity.nota} size="sm" />
+                              </span>
+                            )}
                           </div>
                           {/* <p className="text-xs text-zinc-500 shrink-0">
                             {activity.data_criacao.split(' ')[0]} 

@@ -59,21 +59,21 @@ export function Header() {
               </Button>
             </Link>
 
-            <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+            {/* <Button variant="ghost" size="sm" className="flex items-center space-x-2">
               <List className="h-4 w-4" />
               <span>Listas</span>
-            </Button>
+            </Button> */}
           </nav>
 
           {/* Search and Actions */}
           <div className="flex items-center space-x-4">
-            <div className="relative hidden lg:block">
+            {/* <div className="relative hidden lg:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar músicas..."
                 className="pl-10 w-64"
               />
-            </div>
+            </div> */}
 
             <ThemeToggle />
 

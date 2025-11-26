@@ -236,7 +236,7 @@ export function ListDetail() {
 
                     <div className="flex flex-wrap gap-4 text-sm text-zinc-400 pt-2">
                         <div className="flex items-center space-x-1"><Music className="h-4 w-4" /><span>{list.song_count} Músicas</span></div>
-                        <div className="flex items-center space-x-1"><Calendar className="h-4 w-4" /><span>Criada em: {list.createdAt ? list.createdAt.split('T')[0] : '—'}</span></div>
+                        {/* <div className="flex items-center space-x-1"><Calendar className="h-4 w-4" /><span>Criada em: {list.createdAt ? list.createdAt.split('T')[0] : '—'}</span></div> */}
                         {/* incluir o nome do criador na ListaFull: 
                         <div className="flex items-center space-x-1"><User className="h-4 w-4" /><span>Por: {list.autor_nome}</span></div>
                         */}
