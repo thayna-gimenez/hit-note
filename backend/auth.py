@@ -10,7 +10,7 @@ from config import JWT_CLIENT_SECRET
 # CONFIGURAÇÕES
 # Definições para criação e validação do token JWT
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
