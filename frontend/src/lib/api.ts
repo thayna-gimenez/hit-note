@@ -42,6 +42,7 @@ export async function searchGenius(query: string): Promise<GeniusResult[]> {
 export type Usuario = {
   id: number;
   nome: string;
+  username: string;
   email: string;
 };
 
@@ -56,6 +57,7 @@ export type UserStats = {
 export type UsuarioFull = {
   id: number;
   nome: string;
+  username: string;
   email: string;
   biografia: string;
   url_foto: string;
@@ -82,6 +84,7 @@ export type AuthResponse = {
 export type UsuarioPublico = {
   id: number;
   nome: string;
+  username: string
   url_foto: string;
   biografia: string;
   is_following?: boolean;
@@ -164,9 +167,10 @@ export async function createMusica(data: MusicaIn): Promise<Musica> {
 export type Review = {
   id: number;
   musica: string;   // nome da música salvo no backend
-  nota: number;     // 0..5
+  nota: number;     // 1..5
   comentario: string;
   autor: string;
+  autor_id: number;
 };
 
 export type ReviewIn = {
@@ -239,11 +243,11 @@ export async function loginUser(email: string, senha: string): Promise<AuthRespo
   return r.json();
 }
 
-export async function registerUser(nome: string, email: string, senha: string): Promise<Usuario> {
+export async function registerUser(nome: string, username: string, email: string, senha: string): Promise<Usuario> {
   const r = await fetch(`${BASE}/usuarios`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nome, email, senha }),
+    body: JSON.stringify({ nome, username, email, senha }),
   });
 
   if (!r.ok) {

@@ -33,7 +33,7 @@ def listarReviewsPorMusica(musica_nome):
     with get_connection() as conexao:
         cur = conexao.cursor()
         sql = """
-            SELECT r.id, r.musica, r.nota, r.comentario, u.nome
+            SELECT r.id, r.musica, r.nota, r.comentario, u.username, u.id
             FROM Review r
             LEFT JOIN Usuario u ON r.usuario_id = u.id
             WHERE r.musica = ?
@@ -46,7 +46,7 @@ def obterReviewPorId(review_id):
     with get_connection() as conexao:
         cur = conexao.cursor()
         sql = """
-            SELECT r.id, r.musica, r.nota, r.comentario, u.nome
+            SELECT r.id, r.musica, r.nota, r.comentario, u.username, u.id
             FROM Review r
             LEFT JOIN Usuario u ON r.usuario_id = u.id
             WHERE r.id = ?
@@ -65,25 +65,3 @@ def deletarDados(id):
         cur = conexao.cursor()
         query = "DELETE FROM Review WHERE id=?"
         cur.execute(query, id)
-
-# def visualizarDados():
-#     ver_dados = []
-#     with get_connection() as conexao:
-#         cur = conexao.cursor()
-#         query = "SELECT * FROM Review"
-#         cur.execute(query)
-#         linhas = cur.fetchall()
-#         for linha in linhas:
-#             ver_dados.append(linha)
-#     return ver_dados
-
-# def verLinha(id):
-#     ver_linha = []
-#     with get_connection() as conexao:
-#         cur = conexao.cursor()
-#         query = "SELECT * FROM Review WHERE id=?"
-#         cur.execute(query, id)
-#         linhas = cur.fetchall()
-#         for linha in linhas:
-#             ver_linha.append(linha)
-#     return ver_linha

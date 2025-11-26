@@ -6,6 +6,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   
   const [nome, setNome] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   
@@ -19,7 +20,7 @@ export function RegisterPage() {
 
     try {
       // Chama a rota POST /usuarios
-      await registerUser(nome, email, senha);
+      await registerUser(nome, username, email, senha);
       
       // Se der certo, manda pro login
       alert('Conta criada com sucesso!');
@@ -54,6 +55,18 @@ export function RegisterPage() {
               placeholder="Seu nome"
               value={nome}
               onChange={e => setNome(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">Usuário</label>
+            <input
+              type="text"
+              required
+              className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 focus:outline-none focus:border-purple-500 transition"
+              placeholder="seunome"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
             />
           </div>
 

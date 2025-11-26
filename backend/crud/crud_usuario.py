@@ -38,6 +38,7 @@ def criarTabelaUsuario():
             CREATE TABLE IF NOT EXISTS Usuario(
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
             nome TEXT, 
+            username TEXT UNIQUE,
             email TEXT UNIQUE, 
             senha_hash TEXT,
             biografia TEXT,
@@ -66,7 +67,7 @@ def criarTabelaUsuario():
         """)    
 
 # Inserindo dados 
-def inserirDados(nome, email, senha_hash):
+def inserirDados(nome, username, email, senha_hash):
     """Insere um novo usuário no banco."""
     try:
         data_hoje = datetime.now().strftime("%Y-%m-%d")
@@ -74,13 +75,13 @@ def inserirDados(nome, email, senha_hash):
         with get_connection() as conexao:
             cur = conexao.cursor()
             query = """
-            INSERT INTO Usuario(nome, email, senha_hash, biografia, url_foto, url_capa, localizacao, data_cadastro) 
-            VALUES(?,?,?, '', '', '', '', ?)
+            INSERT INTO Usuario(nome, username, email, senha_hash, biografia, url_foto, url_capa, localizacao, data_cadastro) 
+            VALUES(?,?,?,?, '', '', '', '', ?)
             """
-            cur.execute(query, (nome, email, senha_hash, data_hoje))
+            cur.execute(query, (nome, username, email, senha_hash, data_hoje))
             conexao.commit()
     except lite.IntegrityError:
-        print(f"Erro: O email {email} já está cadastrado.")
+        print(f"Erro: O email/username {email}/{username} já está cadastrado.")
         raise
     except Exception as e:
         print(f"Erro ao inserir dados: {e}")
@@ -91,17 +92,16 @@ def obter_perfil_por_id(id):
     with get_connection() as conexao:
         cur = conexao.cursor()
         query = """
-            SELECT id, nome, email, biografia, url_foto, url_capa, localizacao, data_cadastro 
+            SELECT id, nome, username, email, biografia, url_foto, url_capa, localizacao, data_cadastro 
             FROM Usuario WHERE id=?
         """
         cur.execute(query, (id,))
         return cur.fetchone()
     
 def obter_usuario_por_email(email):
-    # Retorna (id, nome, email, senha_hash) ou None
     with get_connection() as conexao:
         cur = conexao.cursor()
-        query = "SELECT id, nome, email, senha_hash FROM Usuario WHERE email=?"
+        query = "SELECT id, nome, username, email, senha_hash FROM Usuario WHERE email=?"
         cur.execute(query, (email,))
         return cur.fetchone()
     
@@ -219,14 +219,14 @@ def listar_musicas_curtidas(usuario_id):
 # --- FUNÇÕES DE BUSCA E SOCIAL ---
 
 def pesquisar_usuarios(termo):
-    """Busca usuários por nome ou email (parcial)."""
+    """Busca usuários por nome ou username"""
     with get_connection() as con:
         cur = con.cursor()
         termo_like = f"%{termo}%"
         cur.execute("""
-            SELECT id, nome, url_foto, biografia 
+            SELECT id, nome, username, url_foto, biografia 
             FROM Usuario 
-            WHERE nome LIKE ? OR email LIKE ?
+            WHERE nome LIKE ? OR username LIKE ?
             LIMIT 20
         """, (termo_like, termo_like))
         return cur.fetchall()
@@ -279,7 +279,7 @@ def obter_perfil_publico(user_id):
     """
     with get_connection() as con:
         cur = con.cursor()
-        cur.execute("SELECT id, nome, email, biografia, url_foto, url_capa, localizacao, data_cadastro FROM Usuario WHERE id=?", (user_id,))
+        cur.execute("SELECT id, nome, username, email, biografia, url_foto, url_capa, localizacao, data_cadastro FROM Usuario WHERE id=?", (user_id,))
         row = cur.fetchone()
         if not row:
             return None

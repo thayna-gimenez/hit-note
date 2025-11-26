@@ -203,8 +203,11 @@ export function AddMusicPage() {
                                 </Avatar>
                                 <div className="flex-1 overflow-hidden">
                                     <h3 className="font-bold text-lg truncate group-hover:text-purple-400 transition-colors">
-                                        {usuario.nome}
+                                        {usuario.nome} 
                                     </h3>
+                                    <p className="text-sm text-zinc-400 truncate">
+                                        @{usuario.username}
+                                    </p>
                                     <p className="text-sm text-zinc-400 truncate">
                                         {usuario.biografia || "Sem biografia."}
                                     </p>

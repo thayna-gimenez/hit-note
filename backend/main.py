@@ -6,16 +6,6 @@ from typing import List, Tuple, Optional
 import httpx
 from config import GENIUS_CLIENT_SECRET, GENIUS_CLIENT_ID, GENIUS_ACCESS_TOKEN, GENIUS_API_URL
 
-from crud.crud_musica import criarTabelaMusica
-from crud.crud_album import criarTabelaAlbum
-from crud.crud_review import criarTabelaReview
-from crud.crud_usuario import criarTabelaUsuario
-
-from crud.crud_musica import visualizarDados as musica_list
-from crud.crud_musica import inserirDados as musica_insert
-from crud.crud_musica import verLinha as musica_get
-from crud.crud_musica import atualizarDados as musica_update
-from crud.crud_musica import deletarDados as musica_delete
 from bd import get_connection
 
 from datetime import timedelta
@@ -52,7 +42,7 @@ from crud.crud_usuario import (
     alternar_seguir
 )
 
-from crud.crud_album import criarTabelaAlbum
+# from crud.crud_album import criarTabelaAlbum
 from crud.crud_review import (
     criarTabelaReview,
     inserirReview,
@@ -81,7 +71,6 @@ app = FastAPI(title="HitNote API")
 def on_startup():
     print("Iniciando a aplicação e criando tabelas...")
     criarTabelaMusica()
-    criarTabelaAlbum()
     criarTabelaReview()
     criarTabelaUsuario()
     criarTabelaLista()
@@ -247,6 +236,7 @@ class ReviewOut(ReviewIn):
     id: int
     musica: str  # nome da música
     autor: str
+    autor_id: int
 
 def row_to_review(row: Tuple) -> ReviewOut:
     # row vem do JOIN: (id, musica, nota, comentario, nome_usuario)
@@ -258,7 +248,8 @@ def row_to_review(row: Tuple) -> ReviewOut:
         musica=row[1], 
         nota=row[2], 
         comentario=row[3],
-        autor=nome_autor
+        autor=nome_autor,
+        autor_id=row[5]
     )
 
 @app.get("/musicas/{id}/reviews", response_model=List[ReviewOut])
@@ -306,17 +297,20 @@ class UsuarioStats(BaseModel):
     likes: int
 class UsuarioIn(BaseModel):
     nome: str
+    username: str
     email: str
     senha: str
 
 class UsuarioOut(BaseModel):
     id: int
     nome: str
+    username: str
     email: str
 
 class UsuarioProfileOut(BaseModel):
     id: int
     nome: str
+    username: str
     email: str
     biografia: Optional[str] = ""
     url_foto: Optional[str] = ""
@@ -328,6 +322,7 @@ class UsuarioProfileOut(BaseModel):
 class UsuarioPublico(BaseModel):
     id: int
     nome: str
+    username: str
     url_foto: Optional[str] = None
     biografia: Optional[str] = None
     is_following: Optional[bool] = False  
@@ -370,14 +365,15 @@ def cadastrar_usuario(data: UsuarioIn):
     hashed_password = hash_password(data.senha)
     
     try:
-        usuario_insert(data.nome, data.email, hashed_password)
+        usuario_insert(data.nome, data.username, data.email, hashed_password)
         
         novo_usuario_db = obter_usuario_por_email(data.email)
         
         return UsuarioOut(
             id=novo_usuario_db[0], 
             nome=novo_usuario_db[1], 
-            email=novo_usuario_db[2] 
+            username=novo_usuario_db[2],
+            email=novo_usuario_db[3] 
         )
     except Exception as e:
         raise HTTPException(
@@ -397,7 +393,7 @@ def login_usuario(data: LoginIn):
             detail="Credenciais inválidas."
         )
         
-    id_user, nome, email, senha_hash = usuario_db
+    id_user, nome, username, email, senha_hash = usuario_db
     
     if not verify_password(data.senha, senha_hash):
         raise HTTPException(
@@ -412,7 +408,7 @@ def login_usuario(data: LoginIn):
         expires_delta=access_token_expires
     )
     
-    usuario_out = UsuarioOut(id=id_user, nome=nome, email=email)
+    usuario_out = UsuarioOut(id=id_user, nome=nome, username=username, email=email)
     
     return TokenOut(access_token=access_token, usuario=usuario_out)
 
@@ -431,12 +427,13 @@ def ler_meu_perfil(current_user: tuple = Depends(get_current_user)):
     return UsuarioProfileOut(
         id=dados[0],
         nome=dados[1],
-        email=dados[2],
-        biografia=dados[3],
-        url_foto=dados[4],
-        url_capa=dados[5],
-        localizacao=dados[6],
-        data_cadastro=dados[7],
+        username=dados[2],
+        email=dados[3],
+        biografia=dados[4],
+        url_foto=dados[5],
+        url_capa=dados[6],
+        localizacao=dados[7],
+        data_cadastro=dados[8],
         stats=estatisticas
     )
     
@@ -541,8 +538,9 @@ def search_users(q: str):
         resultados.append({
             "id": row[0],
             "nome": row[1],
-            "url_foto": row[2],
-            "biografia": row[3],
+            "username": row[2],
+            "url_foto": row[3],
+            "biografia": row[4],
             "is_following": False 
         })
     return resultados

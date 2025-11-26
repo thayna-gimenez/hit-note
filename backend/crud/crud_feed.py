@@ -33,7 +33,7 @@ def obter_feed_usuario(usuario_id: int) -> List[Dict[str, Any]]:
             feed.append({
                 "id": f"rev_{r[0]}",
                 "tipo": "review",
-                "acao": f"avaliou a música {r[4]} ({r[5]})",
+                "acao": f"Avaliou a música {r[4]} ({r[5]})",
                 "target_id": r[6],
                 "nota": r[2],
                 "comentario": r[3],
@@ -56,7 +56,7 @@ def obter_feed_usuario(usuario_id: int) -> List[Dict[str, Any]]:
             feed.append({
                 "id": f"list_{l[0]}",
                 "tipo": "list_create",
-                "acao": f"criou a nova lista '{l[2]}'",
+                "acao": f"Criou a nova lista '{l[2]}'",
                 "target_id": l[0],
                 "data_criacao": None 
             })

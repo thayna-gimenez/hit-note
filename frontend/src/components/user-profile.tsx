@@ -265,7 +265,7 @@ export function UserProfile() {
                   <h1 className="text-3xl font-bold drop-shadow-md">{profile.nome}</h1>
                 )}
 
-                {isOwner && profile.email && <p className="text-white/70 font-medium">@{profile.email.split('@')[0]}</p>}
+                <p className="text-white/70 font-medium">@{profile.username}</p>
 
                 <div className="mt-3">
                   {isOwner && isEditing ? (
