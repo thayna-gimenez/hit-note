@@ -24,6 +24,7 @@ frontend/dist/
 frontend/.turbo/
 frontend/.env
 frontend/.env.*    # ex.: .env.development.local
+frontend/build
 
 **/.parcel-cache/
 **/.cache/
