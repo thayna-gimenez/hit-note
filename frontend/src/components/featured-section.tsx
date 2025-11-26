@@ -57,7 +57,6 @@ export function FeaturedSection({
           <MusicCard
             key={music.id}
             {...music}
-            onPlay={() => console.log(`Playing ${music.title}`)}
             onLike={() => console.log(`Liked ${music.title}`)}
             onRate={(rating) => console.log(`Rated ${music.title}: ${rating} stars`)}
             onClick={() => onMusicClick?.(music.id)}

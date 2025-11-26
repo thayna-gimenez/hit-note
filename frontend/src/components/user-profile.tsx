@@ -298,13 +298,13 @@ export function UserProfile() {
                 isEditing ? (
                   <>
                     <Button variant="destructive" size="sm" onClick={() => setIsEditing(false)}><X className="h-4 w-4 mr-2" /> Cancelar</Button>
-                    <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm" onClick={handleSaveProfile}><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+                    <Button variant="outline" size="sm" onClick={handleSaveProfile}><Save /> Salvar</Button>
                   </>
                 ) : (
-                  <Button variant="text" size="sm" className="hover:bg-white hover:text-black" onClick={() => setIsEditing(true)}><Edit2 className="h-4 w-4 mr-2" /> Editar Perfil</Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit2 /> Editar Perfil</Button>
                 )
               ) : (
-                <Button onClick={handleToggleFollow} variant={isFollowing ? "secondary" : "default"} className={isFollowing ? "bg-zinc-800 text-white hover:bg-zinc-700" : "bg-purple-600 hover:bg-purple-700 text-white"}>
+                <Button onClick={handleToggleFollow} variant={"outline"}>
                   {isFollowing ? <><UserCheck className="h-4 w-4 mr-2" /> Seguindo</> : <><UserPlus className="h-4 w-4 mr-2" /> Seguir</>}
                 </Button>
               )}

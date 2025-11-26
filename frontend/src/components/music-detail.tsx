@@ -264,7 +264,6 @@ export default function MusicDetail() {
                     variant="outline"
                     onClick={handlePostReview}
                     disabled={submitting || newRating === 0}
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold disabled:opacity-70 disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
                   >
                     {submitting ? "Enviando..." : "Publicar Avaliação"}
                   </Button>

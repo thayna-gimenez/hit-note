@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser } from '../lib/api';
+import { Button } from "../components/ui/button";
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  
+
   const [nome, setNome] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +22,7 @@ export function RegisterPage() {
     try {
       // Chama a rota POST /usuarios
       await registerUser(nome, username, email, senha);
-      
+
       // Se der certo, manda pro login
       alert('Conta criada com sucesso!');
       navigate('/login');
@@ -94,16 +95,18 @@ export function RegisterPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded transition disabled:opacity-50"
-          >
-            {loading ? 'Cadastrando...' : 'Criar Conta'}
-          </button>
+          <div className="mt-6 text-center text-sm text-zinc-400">
+            <Button
+              variant="outline"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Cadastrando...' : 'Criar Conta'}
+            </Button>
+          </div>
         </form>
 
-        <div className="mt-6 text-center text-sm text-zinc-400">
+        <div className="mt-16 text-center text-sm text-zinc-400">
           Já tem uma conta?{' '}
           <Link to="/login" className="text-purple-400 hover:underline">
             Fazer Login
